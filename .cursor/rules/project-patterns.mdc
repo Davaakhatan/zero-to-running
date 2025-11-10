@@ -1,0 +1,122 @@
+Description: Project-specific patterns and conventions for Zero-to-Running Developer Environment
+Globs: **/*.{ts,tsx,js,jsx,yaml,yml,md}
+
+# Project Patterns & Conventions
+
+## Frontend Patterns
+
+### Component Structure
+- Use functional components with TypeScript
+- Prefer client components (`"use client"`) for interactivity
+- Use shadcn/ui components from `@/components/ui`
+- Follow Next.js App Router conventions
+
+### Styling
+- Use Tailwind CSS for all styling
+- Use CSS variables for theming (defined in `app/globals.css`)
+- Support dark mode via `next-themes`
+- Use responsive design (mobile-first)
+
+### State Management
+- Use React hooks (`useState`, `useEffect`) for local state
+- Keep state as local as possible
+- Consider context for shared state if needed
+
+### API Integration
+- Create API client utilities in `lib/api.ts`
+- Use fetch with proper error handling
+- Implement loading and error states
+- Use TypeScript interfaces for API responses
+
+## Backend Patterns (To Be Implemented)
+
+### API Structure
+- RESTful API design
+- Health check endpoint: `GET /health`
+- Service status: `GET /api/services`
+- Configuration: `GET /api/config`, `PUT /api/config`
+- Logs: `GET /api/logs` (with streaming support)
+
+### Error Handling
+- Consistent error response format
+- Proper HTTP status codes
+- Meaningful error messages
+- Log all errors
+
+### Health Checks
+- Each service exposes `/health` endpoint
+- Returns JSON: `{ status: "healthy" | "unhealthy", timestamp: string, details?: object }`
+- Check dependencies (DB, Redis) in health checks
+
+## Infrastructure Patterns
+
+### Docker
+- Multi-stage builds for optimization
+- Use `.dockerignore` to exclude unnecessary files
+- Set proper working directories
+- Use non-root users when possible
+
+### Kubernetes
+- Use ConfigMaps for non-sensitive config
+- Use Secrets for sensitive data
+- Define resource limits for all containers
+- Use health check probes (liveness, readiness)
+- Use init containers for dependency ordering
+
+### Configuration
+- YAML format for config files
+- Store in `config/` directory
+- Separate files per environment: `dev.yaml`, `staging.yaml`
+- Secrets in separate secure files
+
+## Code Quality
+
+### TypeScript
+- Strict mode enabled
+- No `any` types (use `unknown` if needed)
+- Proper type definitions for all APIs
+- Use interfaces for object shapes
+
+### Naming Conventions
+- Components: PascalCase (`ServiceStatusMonitor`)
+- Files: kebab-case (`service-status-monitor.tsx`)
+- Functions: camelCase (`getServiceStatus`)
+- Constants: UPPER_SNAKE_CASE (`MAX_RETRIES`)
+
+### File Organization
+- Components in `components/`
+- Utilities in `lib/`
+- Hooks in `hooks/`
+- Types in `types/` (if needed)
+- API routes in `app/api/` (Next.js)
+
+## Documentation
+
+### Code Comments
+- Document complex logic
+- Explain "why" not "what"
+- Use JSDoc for functions
+- Keep comments up-to-date
+
+### README
+- Clear setup instructions
+- Prerequisites listed
+- Common commands documented
+- Troubleshooting section
+
+## Testing (Future)
+
+### Unit Tests
+- Test utilities and helpers
+- Test API endpoints
+- Test component logic (not UI)
+
+### Integration Tests
+- Test service communication
+- Test health checks
+- Test configuration loading
+
+### E2E Tests
+- Test `make dev` flow
+- Test service startup
+- Test health check orchestration
