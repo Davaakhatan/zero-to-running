@@ -33,13 +33,36 @@ export function LogViewerHealthChecks() {
   const [searchTerm, setSearchTerm] = useState("")
   const [logLevelFilter, setLogLevelFilter] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+  const [selectedService, setSelectedService] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
       setError(null)
       
-      // Fetch logs
-      const logsData = await getLogs({ limit: 50 })
+      // Map service display names to backend service names for filtering
+      const serviceNameMap: Record<string, string> = {
+        'Database': 'Database',
+        'Cache Service': 'Cache Service',
+        'API Server': 'API Server',
+        'Application Frontend': 'Application Frontend',
+        'Dashboard Frontend': 'Dashboard Frontend',
+      };
+      
+      // Fetch logs with service filter if selected
+      // Map service display name to backend service name for filtering
+      let backendServiceName: string | undefined = undefined;
+      if (selectedService) {
+        // Direct mapping for exact matches
+        backendServiceName = serviceNameMap[selectedService] || selectedService;
+        console.log('[Logs] Filtering by service:', selectedService, '->', backendServiceName);
+      } else {
+        console.log('[Logs] Showing all services (no filter)');
+      }
+      
+      const logsData = await getLogs({ 
+        limit: 50,
+        service: backendServiceName,
+      })
       const logsWithDates: LogEntry[] = logsData.map(log => ({
         ...log,
         timestamp: new Date(log.timestamp),
@@ -47,49 +70,103 @@ export function LogViewerHealthChecks() {
       setLogs(logsWithDates)
 
       // Fetch health checks
-      const healthData = await getDetailedHealth()
+      const healthData = await getDetailedHealth() as any
       const checks: HealthCheck[] = []
       
       // Convert health check data to our format
-      if (healthData.dependencies) {
-        // Database health check
-        const dbStatus = healthData.dependencies.database.status === 'healthy' ? 'passed' : 
-                        healthData.dependencies.database.status === 'unhealthy' ? 'failed' : 'warning'
-        checks.push({
-          id: 'database',
-          service: 'Database',
-          timestamp: new Date(healthData.timestamp),
-          status: dbStatus,
-          responseTime: healthData.dependencies.database.details.responseTime || 0,
-          details: healthData.dependencies.database.details.error || 
-                  `Connection healthy, response time: ${healthData.dependencies.database.details.responseTime}ms`,
-        })
-
-        // Redis health check
-        const redisStatus = healthData.dependencies.redis.status === 'healthy' ? 'passed' : 
-                          healthData.dependencies.redis.status === 'unhealthy' ? 'failed' : 'warning'
-        checks.push({
-          id: 'redis',
-          service: 'Cache Service',
-          timestamp: new Date(healthData.timestamp),
-          status: redisStatus,
-          responseTime: healthData.dependencies.redis.details.responseTime || 0,
-          details: healthData.dependencies.redis.details.error || 
-                  `Connection healthy, response time: ${healthData.dependencies.redis.details.responseTime}ms`,
-        })
-      }
-
-      // Backend API health check
+      // ALWAYS show all 5 services - Database, Cache, API Server, App Frontend, Dashboard Frontend
+      // Remove ALL conditional checks - always add all 5 services
+      const deps = healthData?.dependencies || {}
+      
+      // 1. Database health check (ALWAYS add)
+      const dbDep = deps.database
+      const dbStatus = dbDep?.status === 'healthy' ? 'passed' : 
+                      dbDep?.status === 'unhealthy' ? 'failed' : 'warning'
       checks.push({
-        id: 'api',
+        id: 'database',
+        service: 'Database',
+        timestamp: new Date(healthData.timestamp),
+        status: dbStatus,
+        responseTime: dbDep?.details?.responseTime || 0,
+        details: dbDep?.details?.error || 
+                `Connection ${dbDep?.status || 'unknown'}, response time: ${dbDep?.details?.responseTime || 0}ms`,
+      })
+
+      // 2. Redis health check (ALWAYS add)
+      const redisDep = deps.redis
+      const redisStatus = redisDep?.status === 'healthy' ? 'passed' : 
+                        redisDep?.status === 'unhealthy' ? 'failed' : 'warning'
+      checks.push({
+        id: 'redis',
+        service: 'Cache Service',
+        timestamp: new Date(healthData.timestamp),
+        status: redisStatus,
+        responseTime: redisDep?.details?.responseTime || 0,
+        details: redisDep?.details?.error || 
+                `Connection ${redisDep?.status || 'unknown'}, response time: ${redisDep?.details?.responseTime || 0}ms`,
+      })
+
+      // 3. App Frontend health check (ALWAYS add - no conditional)
+      const appFrontendDep = deps['app-frontend']
+      const appFrontendStatus = appFrontendDep?.status === 'healthy' ? 'passed' : 
+                               appFrontendDep?.status === 'unhealthy' ? 'failed' : 'warning'
+      checks.push({
+        id: 'app-frontend',
+        service: 'Application Frontend',
+        timestamp: new Date(healthData.timestamp),
+        status: appFrontendStatus,
+        responseTime: appFrontendDep?.details?.responseTime || 0,
+        details: appFrontendDep?.details?.error || 
+                `Service ${appFrontendDep?.status || 'unknown'}, response time: ${appFrontendDep?.details?.responseTime || 0}ms`,
+      })
+
+      // 4. Dashboard Frontend health check (ALWAYS add - no conditional)
+      const dashboardFrontendDep = deps['dashboard-frontend']
+      const dashboardFrontendStatus = dashboardFrontendDep?.status === 'healthy' ? 'passed' : 
+                                     dashboardFrontendDep?.status === 'unhealthy' ? 'failed' : 'warning'
+      checks.push({
+        id: 'dashboard-frontend',
+        service: 'Dashboard Frontend',
+        timestamp: new Date(healthData.timestamp),
+        status: dashboardFrontendStatus,
+        responseTime: dashboardFrontendDep?.details?.responseTime || 0,
+        details: dashboardFrontendDep?.details?.error || 
+                `Service ${dashboardFrontendDep?.status || 'unknown'}, response time: ${dashboardFrontendDep?.details?.responseTime || 0}ms`,
+      })
+
+      // 5. Backend API health check (ALWAYS add)
+      checks.push({
+        id: 'api-server',
         service: 'API Server',
         timestamp: new Date(healthData.timestamp),
         status: healthData.status === 'healthy' ? 'passed' : 
                 healthData.status === 'degraded' ? 'warning' : 'failed',
-        responseTime: 0, // Could be calculated if needed
+        responseTime: healthData.responseTime || 0,
         details: `Backend API is ${healthData.status}`,
       })
-
+      
+      // Debug logging - ALWAYS log to help debug
+      console.log('=== HEALTH CHECKS DEBUG ===')
+      console.log('[Health Checks] Received healthData:', healthData)
+      console.log('[Health Checks] Dependencies object:', deps)
+      console.log('[Health Checks] Dependencies keys:', Object.keys(deps))
+      console.log('[Health Checks] app-frontend exists:', 'app-frontend' in deps)
+      console.log('[Health Checks] dashboard-frontend exists:', 'dashboard-frontend' in deps)
+      console.log('[Health Checks] Total checks created:', checks.length)
+      console.log('[Health Checks] Services:', checks.map(c => `${c.id}: ${c.service}`))
+      console.log('===========================')
+      
+      // Ensure we always have exactly 5 services
+      if (checks.length !== 5) {
+        console.error(`[Health Checks] ERROR: Expected 5 services, got ${checks.length}!`)
+        console.error('[Health Checks] Services found:', checks.map(c => c.service))
+        console.error('[Health Checks] Missing services:', 
+          ['database', 'redis', 'app-frontend', 'dashboard-frontend', 'api-server']
+            .filter(id => !checks.find(c => c.id === id))
+            .map(id => id)
+        )
+      }
+      
       setHealthChecks(checks)
     } catch (err) {
       console.error('Failed to fetch logs and health checks:', err)
@@ -100,11 +177,22 @@ export function LogViewerHealthChecks() {
   }
 
   useEffect(() => {
+    // Initial fetch
     fetchData()
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    
+    // Auto-refresh every 5 seconds for real-time updates
+    const interval = setInterval(() => {
+      console.log('[Auto-Refresh] Refreshing data...')
+      fetchData()
+    }, 5000)
+    
+    console.log('[Auto-Refresh] Started auto-refresh interval (5 seconds)')
+    
+    return () => {
+      console.log('[Auto-Refresh] Stopping auto-refresh interval')
+      clearInterval(interval)
+    }
+  }, [selectedService])
 
   const getLogLevelColor = (level: string) => {
     switch (level) {
@@ -164,8 +252,10 @@ export function LogViewerHealthChecks() {
       log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.service.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesLevel = !logLevelFilter || log.level === logLevelFilter
+    // Service filter is already applied in fetchData, but keep it here for safety
+    const matchesService = !selectedService || log.service === selectedService
 
-    return matchesSearch && matchesLevel
+    return matchesSearch && matchesLevel && matchesService
   })
 
   const passedChecks = healthChecks.filter((c) => c.status === "passed").length
@@ -229,6 +319,7 @@ export function LogViewerHealthChecks() {
                     <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{passedChecks}</p>
                   </div>
                   <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Passed</p>
+                  <p className="text-xs text-muted-foreground mt-1">({healthChecks.length} total)</p>
                 </div>
               </div>
               <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-center backdrop-blur-sm relative overflow-hidden group hover:scale-105 transition-transform duration-200">
@@ -255,10 +346,29 @@ export function LogViewerHealthChecks() {
 
             {/* Health Checks List */}
             <div className="space-y-3">
-              {healthChecks.map((check) => (
+              {healthChecks.length === 0 && (
+                <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
+                  No health checks available
+                </div>
+              )}
+              {healthChecks.map((check) => {
+                // Use the service name directly for filtering
+                const logServiceName = check.service
+                const isSelected = selectedService === logServiceName
+                
+                return (
                 <div 
                   key={check.id} 
-                  className="rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/30 group"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedService(null) // Deselect if clicking again
+                    } else {
+                      setSelectedService(logServiceName) // Filter to this service
+                    }
+                  }}
+                  className={`rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/30 group cursor-pointer ${
+                    isSelected ? 'border-primary bg-primary/5' : ''
+                  }`}
                 >
                   <div className="flex items-start gap-3 mb-3">
                     <div className="relative mt-0.5 p-1.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors">
@@ -289,9 +399,13 @@ export function LogViewerHealthChecks() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">{check.details}</p>
+                    {isSelected && (
+                      <p className="text-xs text-primary font-medium mt-2">✓ Showing logs for this service</p>
+                    )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
 
@@ -302,6 +416,10 @@ export function LogViewerHealthChecks() {
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <h2 className="text-xl font-bold text-foreground">System Logs</h2>
+              {selectedService && (
+                <span className="text-sm text-primary font-medium">(Filtered: {selectedService})</span>
+              )}
+              <span className="text-xs text-muted-foreground ml-auto">Auto-refreshing every 5s</span>
             </div>
 
             {/* Filter Controls */}

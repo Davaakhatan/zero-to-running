@@ -1,8 +1,9 @@
 # Backend Dockerfile (Fastify)
 FROM node:20-alpine
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install Docker CLI and pnpm
+RUN apk add --no-cache docker-cli && \
+    corepack enable && corepack prepare pnpm@latest --activate
 
 # Set working directory
 WORKDIR /app

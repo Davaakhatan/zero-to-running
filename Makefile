@@ -34,17 +34,19 @@ dev: ## Start all services (single command setup)
 	@echo "$(GREEN)✅ Services started!$(NC)"
 	@echo ""
 	@echo "$(BLUE)Services:$(NC)"
-	@echo "  • Frontend:    http://localhost:3000"
-	@echo "  • Backend API: http://localhost:3003"
-	@echo "  • PostgreSQL:  localhost:5432"
-	@echo "  • Redis:       localhost:6379"
+	@echo "  • Application Frontend: http://localhost:3000"
+	@echo "  • Dashboard Frontend:   http://localhost:3001"
+	@echo "  • Backend API:           http://localhost:3003"
+	@echo "  • PostgreSQL:            localhost:5432"
+	@echo "  • Redis:                 localhost:6379"
 	@echo ""
 	@echo "$(YELLOW)Waiting for services to be healthy...$(NC)"
 	@sleep 5
 	@$(MAKE) health
 	@echo ""
 	@echo "$(GREEN)🎉 Environment ready!$(NC)"
-	@echo "$(BLUE)Access the dashboard at: http://localhost:3000$(NC)"
+	@echo "$(BLUE)Access your application at: http://localhost:3000$(NC)"
+	@echo "$(BLUE)Access the dashboard at: http://localhost:3001$(NC)"
 
 up: dev ## Alias for dev
 
@@ -100,8 +102,10 @@ health: ## Check health of all services
 	@echo ""
 	@echo "$(BLUE)Checking service health...$(NC)"
 	@echo ""
-	@echo -n "$(YELLOW)Frontend:$(NC) "
+	@echo -n "$(YELLOW)App Frontend:$(NC) "
 	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 > /dev/null 2>&1 && echo "$(GREEN)✅ Healthy$(NC)" || echo "$(RED)❌ Not responding$(NC)"
+	@echo -n "$(YELLOW)Dashboard:$(NC)   "
+	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 > /dev/null 2>&1 && echo "$(GREEN)✅ Healthy$(NC)" || echo "$(RED)❌ Not responding$(NC)"
 	@echo -n "$(YELLOW)Backend:$(NC)  "
 	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3003/health > /dev/null 2>&1 && echo "$(GREEN)✅ Healthy$(NC)" || echo "$(RED)❌ Not responding$(NC)"
 	@echo -n "$(YELLOW)PostgreSQL:$(NC) "

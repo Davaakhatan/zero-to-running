@@ -3,6 +3,8 @@
  * Handles all API calls to the backend service
  */
 
+// API base URL - in browser, always use localhost since browser runs on host machine
+// The NEXT_PUBLIC_API_URL is set at build time in Docker
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
 
 export interface Service {
@@ -50,7 +52,7 @@ export interface HealthCheck {
 
 export interface Config {
   services: {
-    frontend: {
+    'app-frontend': {
       port: number;
       host: string;
     };
@@ -193,6 +195,45 @@ class ApiClient {
   }> {
     return this.request('/api/setup/status');
   }
+
+  // Resources Endpoint
+  async getResources(): Promise<{
+    containers: Array<{
+      name: string;
+      id: string;
+      status: string;
+      cpu: number;
+      memory: number;
+      memoryLimit: number;
+      networkIn: number;
+      networkOut: number;
+    }>;
+    timestamp: string;
+  }> {
+    return this.request('/api/resources');
+  }
+
+  // Service Control Endpoints
+  async startService(serviceId: string): Promise<{ success: boolean; message: string }> {
+    return this.request(`/api/services/${serviceId}/start`, {
+      method: 'POST',
+      body: JSON.stringify({}), // Send empty object to satisfy Fastify's JSON body requirement
+    });
+  }
+
+  async stopService(serviceId: string): Promise<{ success: boolean; message: string }> {
+    return this.request(`/api/services/${serviceId}/stop`, {
+      method: 'POST',
+      body: JSON.stringify({}), // Send empty object to satisfy Fastify's JSON body requirement
+    });
+  }
+
+  async restartService(serviceId: string): Promise<{ success: boolean; message: string }> {
+    return this.request(`/api/services/${serviceId}/restart`, {
+      method: 'POST',
+      body: JSON.stringify({}), // Send empty object to satisfy Fastify's JSON body requirement
+    });
+  }
 }
 
 // Export singleton instance
@@ -209,4 +250,8 @@ export const updateConfig = (config: Partial<Config>) => apiClient.updateConfig(
 export const getPrerequisites = () => apiClient.getPrerequisites();
 export const getSetupSteps = () => apiClient.getSetupSteps();
 export const getSetupStatus = () => apiClient.getSetupStatus();
+export const getResources = () => apiClient.getResources();
+export const startService = (serviceId: string) => apiClient.startService(serviceId);
+export const stopService = (serviceId: string) => apiClient.stopService(serviceId);
+export const restartService = (serviceId: string) => apiClient.restartService(serviceId);
 

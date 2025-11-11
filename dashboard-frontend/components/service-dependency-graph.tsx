@@ -37,7 +37,7 @@ export function ServiceDependencyGraph() {
           } else if (apiService.id === "api-server") {
             type = "api"
             dependencies = ["database", "cache"]
-          } else if (apiService.id === "frontend") {
+          } else if (apiService.id === "app-frontend") {
             type = "frontend"
             dependencies = ["api-server"]
           }

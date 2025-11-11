@@ -14,7 +14,7 @@ import {
   Zap,
   Loader2
 } from "lucide-react"
-import { getServices, type Service as ApiService } from "@/lib/api-client"
+import { getServices, startService, stopService, restartService, type Service as ApiService } from "@/lib/api-client"
 
 interface Service {
   id: string
@@ -67,39 +67,204 @@ export function QuickActionsPanel() {
   const [isStartingAll, setIsStartingAll] = useState(false)
   const [isStoppingAll, setIsStoppingAll] = useState(false)
 
-  const handleServiceAction = (serviceId: string, action: "start" | "stop" | "restart") => {
+  const handleServiceAction = async (serviceId: string, action: "start" | "stop" | "restart") => {
+    // Update UI immediately
     setServices(prev => prev.map(s => 
       s.id === serviceId 
         ? { ...s, status: action === "start" ? "starting" : action === "stop" ? "stopping" : "starting" }
         : s
     ))
     
-    // Simulate action
-    setTimeout(() => {
-      setServices(prev => prev.map(s => 
-        s.id === serviceId 
-          ? { ...s, status: action === "stop" ? "stopped" : "running" }
-          : s
-      ))
-    }, 1500)
+    try {
+      // Call the actual backend API
+      let result;
+      if (action === "start") {
+        result = await startService(serviceId);
+      } else if (action === "stop") {
+        result = await stopService(serviceId);
+      } else {
+        result = await restartService(serviceId);
+      }
+      
+      if (result.success) {
+        // Refresh services to get updated status
+        const apiServices = await getServices();
+        const mappedServices: Service[] = apiServices.map(apiService => {
+          let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+          if (apiService.status === "operational") {
+            status = "running";
+          } else if (apiService.status === "degraded") {
+            status = "running";
+          } else if (apiService.status === "down") {
+            status = "stopped";
+          }
+          
+          return {
+            id: apiService.id,
+            name: apiService.name,
+            status,
+            canRestart: true,
+          };
+        });
+        setServices(mappedServices);
+      } else {
+        // Action failed, revert UI
+        const apiServices = await getServices();
+        const mappedServices: Service[] = apiServices.map(apiService => {
+          let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+          if (apiService.status === "operational") {
+            status = "running";
+          } else if (apiService.status === "degraded") {
+            status = "running";
+          } else if (apiService.status === "down") {
+            status = "stopped";
+          }
+          
+          return {
+            id: apiService.id,
+            name: apiService.name,
+            status,
+            canRestart: true,
+          };
+        });
+        setServices(mappedServices);
+        console.error(`Failed to ${action} service ${serviceId}:`, result.message);
+      }
+    } catch (error) {
+      // Error occurred, refresh to get current status
+      const apiServices = await getServices();
+      const mappedServices: Service[] = apiServices.map(apiService => {
+        let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+        if (apiService.status === "operational") {
+          status = "running";
+        } else if (apiService.status === "degraded") {
+          status = "running";
+        } else if (apiService.status === "down") {
+          status = "stopped";
+        }
+        
+        return {
+          id: apiService.id,
+          name: apiService.name,
+          status,
+          canRestart: true,
+        };
+      });
+      setServices(mappedServices);
+      console.error(`Error ${action}ing service ${serviceId}:`, error);
+    }
   }
 
-  const handleStartAll = () => {
+  const handleStartAll = async () => {
     setIsStartingAll(true)
     setServices(prev => prev.map(s => ({ ...s, status: "starting" })))
-    setTimeout(() => {
-      setServices(prev => prev.map(s => ({ ...s, status: "running" })))
-      setIsStartingAll(false)
-    }, 2000)
+    
+    try {
+      // Start all services in parallel
+      const startPromises = services.map(s => startService(s.id));
+      await Promise.all(startPromises);
+      
+      // Refresh services to get updated status
+      const apiServices = await getServices();
+      const mappedServices: Service[] = apiServices.map(apiService => {
+        let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+        if (apiService.status === "operational") {
+          status = "running";
+        } else if (apiService.status === "degraded") {
+          status = "running";
+        } else if (apiService.status === "down") {
+          status = "stopped";
+        }
+        
+        return {
+          id: apiService.id,
+          name: apiService.name,
+          status,
+          canRestart: true,
+        };
+      });
+      setServices(mappedServices);
+    } catch (error) {
+      console.error('Error starting all services:', error);
+      // Refresh to get current status
+      const apiServices = await getServices();
+      const mappedServices: Service[] = apiServices.map(apiService => {
+        let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+        if (apiService.status === "operational") {
+          status = "running";
+        } else if (apiService.status === "degraded") {
+          status = "running";
+        } else if (apiService.status === "down") {
+          status = "stopped";
+        }
+        
+        return {
+          id: apiService.id,
+          name: apiService.name,
+          status,
+          canRestart: true,
+        };
+      });
+      setServices(mappedServices);
+    } finally {
+      setIsStartingAll(false);
+    }
   }
 
-  const handleStopAll = () => {
+  const handleStopAll = async () => {
     setIsStoppingAll(true)
     setServices(prev => prev.map(s => ({ ...s, status: "stopping" })))
-    setTimeout(() => {
-      setServices(prev => prev.map(s => ({ ...s, status: "stopped" })))
-      setIsStoppingAll(false)
-    }, 2000)
+    
+    try {
+      // Stop all services in parallel
+      const stopPromises = services.map(s => stopService(s.id));
+      await Promise.all(stopPromises);
+      
+      // Refresh services to get updated status
+      const apiServices = await getServices();
+      const mappedServices: Service[] = apiServices.map(apiService => {
+        let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+        if (apiService.status === "operational") {
+          status = "running";
+        } else if (apiService.status === "degraded") {
+          status = "running";
+        } else if (apiService.status === "down") {
+          status = "stopped";
+        }
+        
+        return {
+          id: apiService.id,
+          name: apiService.name,
+          status,
+          canRestart: true,
+        };
+      });
+      setServices(mappedServices);
+    } catch (error) {
+      console.error('Error stopping all services:', error);
+      // Refresh to get current status
+      const apiServices = await getServices();
+      const mappedServices: Service[] = apiServices.map(apiService => {
+        let status: "running" | "stopped" | "starting" | "stopping" = "stopped";
+        if (apiService.status === "operational") {
+          status = "running";
+        } else if (apiService.status === "degraded") {
+          status = "running";
+        } else if (apiService.status === "down") {
+          status = "stopped";
+        }
+        
+        return {
+          id: apiService.id,
+          name: apiService.name,
+          status,
+          canRestart: true,
+        };
+      });
+      setServices(mappedServices);
+    } finally {
+      setIsStoppingAll(false);
+    }
   }
 
   const allRunning = services.every(s => s.status === "running")

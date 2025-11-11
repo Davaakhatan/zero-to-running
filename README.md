@@ -12,8 +12,11 @@ cd DevEnv
 # Start the entire development environment
 make dev
 
-# Access the dashboard
+# Access your application
 open http://localhost:3000
+
+# Access the dashboard
+open http://localhost:3001
 ```
 
 ## 📋 Overview
@@ -31,9 +34,11 @@ The Zero-to-Running Developer Environment enables new engineers to set up a comp
 ## 🏗️ Architecture
 
 ```
-Frontend (Next.js) → Backend API (Fastify) → PostgreSQL + Redis
+Application Frontend (Port 3000) ──┐
+                                    ├──→ Backend API (Fastify) → PostgreSQL + Redis
+Dashboard Frontend (Port 3001) ────┘
                     ↓
-            Kubernetes (AKS) Orchestration
+            Docker Compose Orchestration
 ```
 
 ## 🛠️ Technology Stack
@@ -49,15 +54,16 @@ Frontend (Next.js) → Backend API (Fastify) → PostgreSQL + Redis
 
 ```
 DevEnv/
-├── app/                    # Frontend (Next.js)
-├── backend/                # Backend API (Fastify)
+├── app-frontend/           # Application Frontend (Next.js) - Port 3000
+├── dashboard-frontend/     # Dashboard Frontend (Next.js) - Port 3001
+├── backend/                 # Backend API (Fastify) - Port 3003
 ├── config/                 # Configuration files
-├── k8s/                    # Kubernetes manifests
 ├── docs/                   # Documentation
 │   ├── PRD.md
 │   ├── Architecture.md
 │   ├── Phases.md
 │   └── tasks.md
+├── docker-compose.yml      # Docker Compose configuration
 ├── Makefile                # Orchestration commands
 └── README.md               # This file
 ```

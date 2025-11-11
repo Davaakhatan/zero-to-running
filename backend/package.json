@@ -18,20 +18,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fastify": "^4.28.1",
     "@fastify/cors": "^9.0.1",
-    "pg": "^8.13.1",
-    "redis": "^4.7.0",
+    "dockerode": "^4.0.9",
     "dotenv": "^16.4.7",
-    "js-yaml": "^4.1.0"
+    "fastify": "^4.28.1",
+    "js-yaml": "^4.1.0",
+    "pg": "^8.13.1",
+    "redis": "^4.7.0"
   },
   "devDependencies": {
+    "@types/dockerode": "^3.3.45",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.19.0",
     "@types/pg": "^8.11.10",
-    "@types/js-yaml": "^4.0.9",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   }
 }
-

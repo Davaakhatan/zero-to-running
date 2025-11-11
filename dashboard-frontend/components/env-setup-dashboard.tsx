@@ -37,7 +37,9 @@ export function EnvSetupDashboard() {
               DATABASE_URL: `postgres://${config.services.database.user}@${config.services.database.host}:${config.services.database.port}/${config.services.database.name}`,
               REDIS_URL: `redis://${config.services.redis.host}:${config.services.redis.port}`,
               BACKEND_URL: `http://${config.services.backend.host}:${config.services.backend.port}`,
-              FRONTEND_URL: `http://${config.services.frontend.host}:${config.services.frontend.port}`,
+              APP_FRONTEND_URL: config.services['app-frontend'] 
+                ? `http://${config.services['app-frontend'].host}:${config.services['app-frontend'].port}`
+                : 'http://localhost:3000',
             },
           },
         ]

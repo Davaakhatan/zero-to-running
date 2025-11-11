@@ -5,6 +5,7 @@ import { servicesRoutes } from './routes/services.js';
 import { configRoutes } from './routes/config.js';
 import { logsRoutes } from './routes/logs.js';
 import { setupRoutes } from './routes/setup.js';
+import { resourcesRoutes } from './routes/resources.js';
 import { securityMiddleware } from './middleware/security.js';
 
 const fastify = Fastify({
@@ -56,6 +57,7 @@ await fastify.register(servicesRoutes);
 await fastify.register(configRoutes);
 await fastify.register(logsRoutes);
 await fastify.register(setupRoutes);
+await fastify.register(resourcesRoutes);
 
 // Start server
 const start = async () => {

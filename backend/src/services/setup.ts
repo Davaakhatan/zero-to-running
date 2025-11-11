@@ -145,7 +145,7 @@ export async function getSetupSteps(): Promise<SetupStep[]> {
   const dbService = services.find(s => s.id === 'database');
   const redisService = services.find(s => s.id === 'cache');
   const apiService = services.find(s => s.id === 'api-server');
-  const frontendService = services.find(s => s.id === 'frontend');
+  const appFrontendService = services.find(s => s.id === 'app-frontend');
 
   steps.push({
     id: '3',
@@ -170,9 +170,9 @@ export async function getSetupSteps(): Promise<SetupStep[]> {
 
   steps.push({
     id: '6',
-    name: 'Start Frontend',
-    status: frontendService?.status === 'operational' ? 'completed' : frontendService?.status === 'degraded' ? 'in-progress' : 'pending',
-    service: 'frontend',
+    name: 'Start Application Frontend',
+    status: appFrontendService?.status === 'operational' ? 'completed' : appFrontendService?.status === 'degraded' ? 'in-progress' : 'pending',
+    service: 'app-frontend',
   });
 
   // Health checks step

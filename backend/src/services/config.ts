@@ -6,7 +6,7 @@ const CONFIG_PATH = process.env.CONFIG_PATH || join(process.cwd(), 'config', 'de
 
 export interface Config {
   services: {
-    frontend: {
+    'app-frontend': {
       port: number;
       host: string;
     };
@@ -47,12 +47,12 @@ export async function getConfig(): Promise<Config> {
     // Return default config if file doesn't exist
     return {
       services: {
-        frontend: {
+        'app-frontend': {
           port: 3000,
           host: 'localhost',
         },
         backend: {
-          port: 3001,
+          port: 3003,
           host: 'localhost',
         },
         database: {

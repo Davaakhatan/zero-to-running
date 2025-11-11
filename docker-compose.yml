@@ -13,6 +13,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devuser} -d ${POSTGRES_DB:-devenv}"]
       interval: 10s
@@ -29,6 +34,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -51,6 +61,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-devuser}:${POSTGRES_PASSWORD:-devpass}@postgres:5432/${POSTGRES_DB:-devenv}
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: info
+      IN_DOCKER: "true"
     ports:
       - "3003:3003"
     depends_on:
@@ -61,18 +72,25 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - /var/run/docker.sock:/var/run/docker.sock # Docker socket for container stats
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - dev-env-network
     restart: unless-stopped
 
-  # Frontend
-  frontend:
+  # Application Frontend (Port 3000) - The actual app developers build
+  app-frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./app-frontend
+      dockerfile: Dockerfile
+      target: runner
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3003
-    container_name: dev-env-frontend
+    container_name: dev-env-app-frontend
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3003
@@ -81,9 +99,43 @@ services:
     depends_on:
       - backend
     volumes:
-      - .:/app
+      - ./app-frontend:/app
       - /app/node_modules
       - /app/.next
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - dev-env-network
+    restart: unless-stopped
+
+  # Dashboard Frontend (Port 3001) - Monitoring/management tool
+  dashboard-frontend:
+    build:
+      context: ./dashboard-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3003
+    container_name: dev-env-dashboard-frontend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3003
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+      - app-frontend
+    volumes:
+      - ./dashboard-frontend:/app
+      - /app/node_modules
+      - /app/.next
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - dev-env-network
     restart: unless-stopped

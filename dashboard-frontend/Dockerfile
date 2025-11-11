@@ -48,7 +48,7 @@ COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/next.config.mjs ./next.config.mjs
 
-# Expose port
+# Expose port (dashboard runs on 3000 inside container, mapped to 3001 on host)
 EXPOSE 3000
 
 # Start the application
