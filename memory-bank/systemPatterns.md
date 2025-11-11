@@ -2,34 +2,49 @@
 
 ## Architecture Overview
 
-The Zero-to-Running Developer Environment follows a multi-service architecture orchestrated via Kubernetes on AKS (Azure Kubernetes Service).
+### Local Development (Current Implementation)
+
+The Zero-to-Running Developer Environment uses Docker Compose for local development orchestration.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Developer Machine                    │
 │                                                         │
-│  ┌──────────────┐         ┌──────────────┐            │
-│  │   Frontend   │────────▶│  Backend API │            │
-│  │  (Next.js)   │         │  (Node/Dora) │            │
-│  │  Port 3000   │         │  Port 3001   │            │
-│  └──────────────┘         └──────┬───────┘            │
-│                                   │                    │
-│                          ┌────────┴────────┐          │
-│                          │                 │           │
-│                    ┌─────▼─────┐    ┌─────▼─────┐     │
-│                    │ PostgreSQL │    │   Redis   │     │
-│                    │  Database  │    │   Cache   │     │
-│                    └────────────┘    └──────────┘     │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │ Application      │         │ Dashboard        │    │
+│  │ Frontend         │         │ Frontend         │    │
+│  │ (Next.js)        │         │ (Next.js)        │    │
+│  │ Port 3000        │         │ Port 3001        │    │
+│  └────────┬─────────┘         └────────┬─────────┘    │
+│           │                            │               │
+│           └────────────┬───────────────┘               │
+│                        │                               │
+│                 ┌──────▼───────┐                      │
+│                 │  Backend API │                      │
+│                 │  (Fastify)   │                      │
+│                 │  Port 3003    │                      │
+│                 └──────┬────────┘                      │
+│                        │                               │
+│           ┌────────────┴────────────┐                 │
+│           │                         │                  │
+│     ┌─────▼─────┐           ┌─────▼─────┐            │
+│     │ PostgreSQL │           │   Redis   │            │
+│     │  Database  │           │   Cache   │            │
+│     └────────────┘           └──────────┘            │
 │                                                         │
 │  ┌──────────────────────────────────────────────┐      │
-│  │         Kubernetes (AKS) Orchestration      │      │
-│  │  - Service definitions                      │      │
-│  │  - Deployment configs                       │      │
-│  │  - Health checks                            │      │
-│  │  - Service discovery                        │      │
+│  │      Docker Compose Orchestration            │      │
+│  │  - Service definitions                       │      │
+│  │  - Health checks                             │      │
+│  │  - Volume management                         │      │
+│  │  - Network isolation                          │      │
 │  └──────────────────────────────────────────────┘      │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Production Deployment (Planned)
+
+Production deployment will use Kubernetes on AKS (Azure Kubernetes Service).
 
 ## Component Relationships
 
@@ -42,9 +57,9 @@ The Zero-to-Running Developer Environment follows a multi-service architecture o
   - Configuration management UI
   - Environment setup dashboard
 
-### Backend API (Node.js/Dora)
+### Backend API (Node.js/Fastify)
 - **Purpose**: Service orchestration and health monitoring
-- **Technology**: Node.js, TypeScript, Dora framework
+- **Technology**: Node.js, TypeScript, Fastify framework
 - **Responsibilities**:
   - Service lifecycle management
   - Health check endpoints
@@ -68,9 +83,10 @@ The Zero-to-Running Developer Environment follows a multi-service architecture o
 ## Design Patterns
 
 ### 1. Orchestration Pattern
-- Kubernetes manages service lifecycle
+- **Local Development**: Docker Compose manages service lifecycle
+- **Production**: Kubernetes will manage service lifecycle (planned)
 - Makefile provides developer-friendly interface
-- Dependency ordering handled by K8s init containers or startup scripts
+- Dependency ordering handled by Docker Compose `depends_on` or K8s init containers
 
 ### 2. Configuration Externalization
 - All config in `config/` directory
