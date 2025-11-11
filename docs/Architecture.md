@@ -3,40 +3,87 @@
 
 ## Architecture Overview
 
-The Zero-to-Running Developer Environment follows a multi-service architecture orchestrated via Kubernetes on AKS (Azure Kubernetes Service).
+The Zero-to-Running Developer Environment follows a **two-frontend architecture** with a multi-service backend, all orchestrated via Docker Compose for local development.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Developer Machine                    │
+│              Developer's Local Machine                 │
 │                                                         │
-│  ┌──────────────┐         ┌──────────────┐            │
-│  │   Frontend   │────────▶│  Backend API │            │
-│  │  (Next.js)   │         │  (Fastify)   │            │
-│  │  Port 3000   │         │  Port 3003   │            │
-│  └──────────────┘         └──────┬───────┘            │
-│                                   │                    │
-│                          ┌────────┴────────┐          │
-│                          │                 │           │
-│                    ┌─────▼─────┐    ┌─────▼─────┐     │
-│                    │ PostgreSQL │    │   Redis   │     │
-│                    │  Database  │    │   Cache   │     │
-│                    └────────────┘    └──────────┘     │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │  Application     │         │  Dashboard       │    │
+│  │  Frontend        │         │  Frontend        │    │
+│  │  (Port 3000)     │         │  (Port 3001)     │    │
+│  │                  │         │                  │    │
+│  │  - Your App      │         │  - Monitoring UI │    │
+│  │  - User-facing   │         │  - Service Status│    │
+│  │  - What you      │         │  - Logs Viewer   │    │
+│  │    build         │         │  - Resources     │    │
+│  └────────┬─────────┘         └────────┬─────────┘    │
+│           │                            │               │
+│           │                            │               │
+│           └────────────┬───────────────┘               │
+│                        │                               │
+│                  ┌─────▼─────┐                        │
+│                  │  Backend   │                        │
+│                  │  API       │                        │
+│                  │  (3003)    │                        │
+│                  └─────┬─────┘                        │
+│                        │                               │
+│           ┌────────────┴────────────┐                 │
+│           │                         │                 │
+│      ┌────▼─────┐            ┌─────▼─────┐           │
+│      │PostgreSQL│            │   Redis   │           │
+│      │  (5432)  │            │  (6379)   │           │
+│      └──────────┘            └───────────┘           │
 │                                                         │
 │  ┌──────────────────────────────────────────────┐      │
-│  │         Kubernetes (AKS) Orchestration      │      │
+│  │         Docker Compose Orchestration         │      │
 │  │  - Service definitions                      │      │
-│  │  - Deployment configs                       │      │
 │  │  - Health checks                            │      │
-│  │  - Service discovery                        │      │
+│  │  - Volume persistence                       │      │
+│  │  - Network isolation                        │      │
 │  └──────────────────────────────────────────────┘      │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Component Architecture
+## Two-Frontend Architecture
 
-### Frontend (Next.js)
+### Why Two Frontends?
 
-**Purpose**: Developer dashboard and monitoring UI
+The project separates concerns into two distinct frontends:
+
+1. **Application Frontend** (Port 3000)
+   - The actual application developers build
+   - User-facing application
+   - Example: Random Quote Generator
+   - Monitored by the dashboard
+
+2. **Dashboard Frontend** (Port 3001)
+   - Monitoring and management tool
+   - Service status, logs, resources
+   - Configuration management
+   - Does NOT monitor itself (avoids confusion)
+
+### Application Frontend
+
+**Purpose**: The actual application being developed
+
+**Technology Stack**:
+- React 19.2.0
+- Next.js 16 (App Router)
+- TypeScript 5.x
+- Tailwind CSS 4.1.9
+
+**Responsibilities**:
+- User-facing application logic
+- Business features
+- Application-specific UI
+
+**Health Check**: Exposes `/api/health` endpoint for monitoring
+
+### Dashboard Frontend
+
+**Purpose**: Monitoring and management interface
 
 **Technology Stack**:
 - React 19.2.0
@@ -46,259 +93,225 @@ The Zero-to-Running Developer Environment follows a multi-service architecture o
 - shadcn/ui component library
 
 **Responsibilities**:
-- Display service status in real-time
-- Show logs and health checks
-- Configuration management UI
-- Environment setup dashboard
-- Setup wizard and prerequisites checker
-- Resource usage monitoring
-- Service dependency visualization
+- Real-time service monitoring
+- Log aggregation and viewing
+- Resource usage tracking
+- Configuration management
+- Service control (start/stop/restart)
 
-**Key Components**:
-- `MainDashboard`: Navigation and layout
-- `ServiceStatusMonitor`: Service health monitoring
-- `LogViewerHealthChecks`: Log aggregation and health checks
-- `ConfigurationPanel`: Configuration management
-- `EnvSetupDashboard`: Environment variable management
-- `SetupWizard`: Onboarding and setup flow
-- `ServiceDependencyGraph`: Dependency visualization
-- `QuickActionsPanel`: Service control
-- `ResourceUsageDashboard`: Resource monitoring
+**Pages**:
+- Setup Wizard
+- Dashboard Overview
+- Services Status
+- Logs & Health Checks
+- Configuration
+- Environments
+- Dependencies Graph
+- Resource Usage
 
-### Backend API (Fastify)
+## Backend API
 
-**Purpose**: Service orchestration and health monitoring
+**Purpose**: Central API server for all services
 
 **Technology Stack**:
-- Node.js
-- Fastify 4.x
-- TypeScript 5.9.3
+- Node.js 20+
+- Fastify (TypeScript)
 - PostgreSQL client (pg)
 - Redis client (redis)
+- Docker SDK (dockerode)
 
 **Responsibilities**:
-- Service lifecycle management
-- Health check endpoints (`/health`, `/health/detailed`)
-- Service status API (`/api/services`)
-- Configuration API (`/api/config`, `PUT /api/config`)
-- Log aggregation API (`/api/logs`)
-- Database and cache health monitoring
+- Service health checks
+- Service status monitoring
+- Log aggregation from Docker containers
+- Resource monitoring (CPU, memory, network)
+- Service control (start/stop/restart)
+- Configuration management
+- Setup wizard data
 
-**API Endpoints**:
+**Endpoints**:
 - `GET /health` - Basic health check
 - `GET /health/detailed` - Detailed health with dependencies
 - `GET /api/services` - Service status list
+- `GET /api/services/:id` - Individual service status
+- `POST /api/services/:id/start` - Start service
+- `POST /api/services/:id/stop` - Stop service
+- `POST /api/services/:id/restart` - Restart service
+- `GET /api/logs` - Aggregated logs from all containers
+- `GET /api/resources` - Container resource usage
 - `GET /api/config` - Get configuration
 - `PUT /api/config` - Update configuration
-- `GET /api/logs` - Get aggregated logs
+- `GET /api/setup/status` - Setup wizard status
 
-### PostgreSQL Database
+## Data Layer
 
-**Purpose**: Primary data store
+### PostgreSQL
 
-**Responsibilities**:
-- Application data persistence
-- Connection pooling
-- Health check endpoint
-- Transaction management
+**Purpose**: Primary database
 
 **Configuration**:
-- Connection via `DATABASE_URL` environment variable
-- Default: `postgresql://user:password@localhost:5432/devdb`
+- Port: 5432
+- Database: `devenv`
+- User: `devuser`
+- Password: `devpass` (development only)
+- Volume: `postgres_data` (persistent)
 
-### Redis Cache
+**Usage**:
+- Application data storage
+- Backend API data persistence
+
+### Redis
 
 **Purpose**: Caching layer
 
-**Responsibilities**:
-- Session storage
-- Cache management
-- Health check endpoint
-- Fast data access
-
 **Configuration**:
-- Connection via `REDIS_URL` environment variable
-- Default: `redis://localhost:6379`
+- Port: 6379
+- Volume: `redis_data` (persistent)
 
-## Design Patterns
+**Usage**:
+- Session caching
+- Application caching
+- Rate limiting
 
-### 1. Orchestration Pattern
+## Infrastructure
 
-- Kubernetes manages service lifecycle
-- Makefile provides developer-friendly interface (`make dev`, `make down`)
-- Dependency ordering handled by K8s init containers or startup scripts
-- Health checks ensure services are ready before dependent services start
+### Docker Compose
 
-### 2. Configuration Externalization
+**Purpose**: Local development orchestration
 
-- All configuration in `config/` directory
-- Environment-specific files (`dev.yaml`, `staging.yaml`, `production.yaml`)
-- Secrets in separate secure files
-- No hardcoded values in code
-- Configuration API for runtime updates
+**Services**:
+1. `postgres` - PostgreSQL database
+2. `redis` - Redis cache
+3. `backend` - Backend API server
+4. `app-frontend` - Application frontend
+5. `dashboard-frontend` - Dashboard frontend
 
-### 3. Health Check Pattern
+**Features**:
+- Service dependencies and startup ordering
+- Health checks for all services
+- Volume persistence for data
+- Network isolation
+- Log rotation (10MB max, 3 files per service)
 
-- Each service exposes `/health` endpoint
-- Orchestrator polls health checks
-- Status displayed in dashboard
-- Startup waits for healthy services before proceeding
-- Detailed health includes dependency status
-
-### 4. Service Discovery
-
-- Kubernetes DNS for inter-service communication
-- Services reference each other by service name
-- Ports exposed via K8s services
-- Environment variables for service URLs
-
-### 5. Logging Pattern
-
-- Centralized log aggregation
-- Structured logging format (JSON)
-- Real-time log streaming to dashboard
-- Log levels: debug, info, warning, error
-- Log filtering and search capabilities
-
-### 6. Monorepo Pattern
-
-- Single repository for frontend and backend
-- Shared configuration and orchestration
-- Unified development workflow
-- Single command setup
-
-## Service Communication Flow
+### Service Dependencies
 
 ```
-Frontend (Browser)
-    │
-    ├─ HTTP ──▶ Backend API
-    │              │
-    │              ├─ SQL ──▶ PostgreSQL
-    │              │
-    │              └─ Redis ─▶ Redis Cache
-    │
-    └─ WebSocket ─▶ Backend API (for real-time logs - optional)
+postgres (no dependencies)
+redis (no dependencies)
+backend (depends on: postgres, redis)
+app-frontend (depends on: backend)
+dashboard-frontend (depends on: backend, app-frontend)
 ```
 
-## Data Flow
+## Communication Flow
 
-1. **Configuration**: `config/dev.yaml` → Makefile → K8s ConfigMaps → Services
-2. **Service Startup**: Makefile → kubectl → K8s → Containers
-3. **Health Checks**: Services → `/health` → Backend API → Frontend Dashboard
-4. **Logs**: Services → stdout → K8s → Backend API → Frontend Dashboard
-5. **Service Status**: Backend API → Frontend Dashboard (real-time updates)
+### Frontend to Backend
+- Both frontends communicate with backend via REST API
+- Backend API URL: `http://localhost:3003` (or `http://backend:3003` from containers)
+- CORS enabled for localhost origins
 
-## Deployment Architecture
+### Backend to Services
+- Backend uses Docker SDK to interact with containers
+- Health checks via HTTP endpoints
+- Log aggregation via Docker logs API
+- Resource monitoring via Docker stats API
 
-### Local Development
-- Docker Compose or local Kubernetes (minikube/kind)
-- Services run in containers
-- Port forwarding for local access
-- Hot reload for frontend and backend
+### Inter-Container Communication
+- Services communicate via Docker network: `dev-env-network`
+- Service names resolve via Docker DNS
+- Example: `http://backend:3003` from frontend containers
 
-### Cloud Deployment (AKS)
-- Azure Kubernetes Service cluster
-- Kubernetes deployments for each service
-- Service definitions for inter-service communication
-- ConfigMaps and Secrets for configuration
-- Ingress for external access (optional)
+## Health Checks
 
-## Security Patterns
+All services expose health check endpoints:
 
-- **Secrets Management**: Mock secrets in config files (demonstrates pattern)
-- **Network Policies**: K8s network policies for service isolation
-- **Health Checks**: No sensitive data in health endpoints
-- **Configuration**: Secrets separate from non-sensitive config
-- **CORS**: Configured for frontend-backend communication
+- **Backend**: `GET /health`
+- **App Frontend**: `GET /api/health`
+- **Dashboard Frontend**: `GET /api/health`
+- **PostgreSQL**: `pg_isready`
+- **Redis**: `redis-cli ping`
 
-## Scalability Considerations
+Backend aggregates all health checks in `/health/detailed`.
 
-- **Horizontal Scaling**: K8s supports easy scaling of services
-- **Resource Limits**: Defined in K8s manifests
-- **Service Isolation**: Each service in separate pod
-- **Future Services**: Easy to add via K8s manifests
-- **Load Balancing**: K8s service load balancing
+## Log Management
 
-## Key Technical Decisions
+### Log Sources
+- All Docker containers output logs
+- Backend parses Docker logs via Docker SDK
+- Logs include timestamps, levels, and service names
 
-### Why Kubernetes?
-- **Scalability**: Easy to add new services
-- **Portability**: Works across environments (local, cloud)
-- **Service Management**: Built-in health checks, service discovery
-- **Resource Management**: Efficient container orchestration
-- **Industry Standard**: Widely adopted and well-documented
+### Log Rotation
+- Configured in `docker-compose.yml`
+- Max size: 10MB per log file
+- Max files: 3 per service
+- Prevents disk full issues
 
-### Why AKS?
-- **Managed Service**: Reduces operational overhead
-- **Integration**: Seamless with Azure services and AWS
-- **Developer Experience**: Good tooling and documentation
-- **Multi-Cloud**: Supports both Azure and AWS infrastructure
-- **Production-Ready**: Enterprise-grade Kubernetes service
+### Log Aggregation
+- Backend fetches logs from all containers
+- Parses Docker log format (8-byte headers)
+- Supports filtering by service, level, and time
+- Real-time updates via polling (5-second intervals)
 
-### Why Fastify?
-- **Performance**: High-performance HTTP framework
-- **TypeScript**: Native TypeScript support
-- **Modern**: Active development and modern features
-- **Ecosystem**: Good plugin ecosystem
-- **Alternative**: Chosen over non-existent "Dora" framework
+## Resource Monitoring
 
-### Why Monorepo?
-- **Single Command Setup**: Easier orchestration
-- **Version Consistency**: Frontend and backend stay in sync
-- **Shared Configuration**: Common config files
-- **Developer Experience**: One clone, one setup
-- **Simplified Workflow**: Unified development process
+### Metrics Collected
+- CPU usage per container
+- Memory usage and limits
+- Network I/O (inbound/outbound)
 
-## Project Structure
+### Data Source
+- Docker SDK (`dockerode`)
+- Real-time stats from Docker daemon
+- Updated every 10 seconds
 
-```
-DevEnv/
-├── app/                    # Frontend (Next.js)
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── backend/                # Backend API (Fastify)
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── routes/
-│   │   ├── services/
-│   │   └── types/
-│   └── package.json
-├── components/            # React components
-│   ├── ui/                # shadcn/ui components
-│   ├── main-dashboard.tsx
-│   ├── service-status-monitor.tsx
-│   └── ...
-├── config/                # Configuration files
-│   ├── dev.yaml
-│   └── staging.yaml
-├── k8s/                   # Kubernetes manifests
-│   ├── frontend.yaml
-│   ├── backend.yaml
-│   ├── postgresql.yaml
-│   └── redis.yaml
-├── docs/                  # Documentation
-│   ├── PRD.md
-│   ├── Architecture.md
-│   ├── Phases.md
-│   └── tasks.md
-├── Makefile               # Orchestration commands
-├── package.json           # Frontend dependencies
-└── README.md
-```
+## Service Control
 
-## Future Enhancements
+### Supported Actions
+- **Start**: Start a stopped container
+- **Stop**: Stop a running container
+- **Restart**: Restart a container
 
-- WebSocket support for real-time updates
-- Advanced monitoring and alerting
-- Multi-environment profiles
-- Database migrations automation
-- Performance optimization
-- Advanced security features
+### Implementation
+- Backend uses Docker SDK to control containers
+- Checks container state before actions
+- Returns success/failure status
+
+## Configuration Management
+
+### Configuration File
+- Location: `config/dev.yaml`
+- Format: YAML
+- Services: Database, Redis, Backend, Frontends
+
+### Configuration API
+- `GET /api/config` - Read current configuration
+- `PUT /api/config` - Update configuration
+- Changes persist to `config/dev.yaml`
+
+## Development Workflow
+
+1. **Start Environment**: `make dev`
+2. **Develop Application**: Edit code in `app-frontend/`
+3. **Monitor Services**: View dashboard at http://localhost:3001
+4. **Check Logs**: Use Logs & Health page
+5. **Control Services**: Use Quick Actions panel
+6. **Stop Environment**: `make down`
+
+## Production Considerations
+
+### Current State
+- ✅ Local development fully functional
+- ⏳ Kubernetes manifests (planned for AKS)
+- ⏳ Production deployment automation (planned)
+
+### Future Enhancements
+- Kubernetes orchestration (AKS)
+- Production Docker images
+- CI/CD pipeline
+- Environment-specific configurations
+- Secrets management
+- Monitoring and alerting
 
 ---
 
-**Last Updated**: 2024  
-**Status**: Architecture defined, implementation in progress
-
+**Note**: This architecture is optimized for local development. Production deployment will use Kubernetes (AKS) with similar service structure but different orchestration.

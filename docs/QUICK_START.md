@@ -1,116 +1,116 @@
 # 🚀 Quick Start Guide
 
-## What's Ready
+Get your development environment running in minutes!
 
-✅ **Docker Configuration**
-- Frontend Dockerfile (`Dockerfile.frontend`)
-- Backend Dockerfile (`backend/Dockerfile`)
-- Docker Compose setup (`docker-compose.yml`)
+## Prerequisites
 
-✅ **Makefile Commands**
-- `make dev` - Start everything
-- `make down` - Stop everything
-- `make status` - Check service status
-- `make health` - Health checks
-- And more! (run `make help`)
+### Required
+- **Docker Desktop** (v20.10+) - [Download](https://docs.docker.com/get-docker/)
+- **Docker Compose** (v2.0+) - Usually included with Docker Desktop
+- **Make** (optional but recommended) - Usually pre-installed on macOS/Linux
 
-✅ **Documentation**
-- Setup guide (`docs/SETUP_GUIDE.md`)
-- TypeScript setup (`docs/TYPESCRIPT_SETUP.md`)
-
-## 🎯 Next Steps - Manual Tasks
-
-### 1. Install Prerequisites (If Not Already Installed)
-
-**Required:**
-- [ ] **Docker Desktop** (or Docker + Docker Compose)
-  - Download: https://docs.docker.com/get-docker/
-  - Verify: `docker --version` and `docker-compose --version`
-
-- [ ] **Make** (optional, but recommended)
-  - macOS/Linux: Usually pre-installed
-  - Windows: Use WSL or install via Chocolatey
-  - Verify: `make --version`
-
-**Optional (for local dev without Docker):**
-- Node.js 20+
-- pnpm
-- PostgreSQL 16+
-- Redis 7+
-
-### 2. Test the Setup
-
+### Verify Installation
 ```bash
-# 1. Make sure Docker is running
-docker ps
-
-# 2. Start everything
-make dev
-
-# 3. Wait for services to start (about 30-60 seconds)
-
-# 4. Check health
-make health
-
-# 5. Open dashboard
-open http://localhost:3000
+docker --version
+docker-compose --version
+make --version  # Optional
 ```
 
-### 3. If You Encounter Issues
+## Start Everything
 
-**Port conflicts?**
-- Check what's using ports: `lsof -i :3000` (macOS/Linux)
-- Stop conflicting services or update ports in `docker-compose.yml`
+```bash
+# Single command to start all services
+make dev
+```
 
-**Docker not starting?**
+This will:
+1. ✅ Pull Docker images (PostgreSQL, Redis)
+2. ✅ Build frontend and backend images
+3. ✅ Start all services with proper dependencies
+4. ✅ Run health checks
+5. ✅ Show access URLs
+
+**Wait 30-60 seconds** for all services to start.
+
+## Access Your Application
+
+Once `make dev` completes:
+
+- **Application Frontend**: http://localhost:3000
+  - Your actual application (Random Quote Generator example)
+  
+- **Dashboard Frontend**: http://localhost:3001
+  - Monitoring and management dashboard
+  - Service status, logs, resources, configuration
+
+- **Backend API**: http://localhost:3003
+  - Health check: http://localhost:3003/health
+
+## Verify Everything Works
+
+```bash
+# Check service status
+make status
+
+# Check health
+make health
+
+# View logs
+make logs
+```
+
+## Stop Everything
+
+```bash
+# Stop and remove all containers
+make down
+```
+
+## Common Issues
+
+### Port Conflicts
+```bash
+# Check what's using ports (macOS/Linux)
+lsof -i :3000
+lsof -i :3001
+lsof -i :3003
+
+# Stop conflicting services or update ports in docker-compose.yml
+```
+
+### Docker Not Starting
 - Ensure Docker Desktop is running
 - Check Docker daemon: `docker ps`
 
-**Services not healthy?**
-- Check logs: `make logs`
-- Check status: `make status`
-- Rebuild: `make build && make dev`
-
-### 4. What Happens When You Run `make dev`
-
-1. ✅ Pulls Docker images (PostgreSQL, Redis)
-2. ✅ Builds frontend and backend images
-3. ✅ Starts PostgreSQL container
-4. ✅ Starts Redis container
-5. ✅ Starts Backend API (waits for DB/Redis)
-6. ✅ Starts Frontend (waits for Backend)
-7. ✅ Runs health checks
-8. ✅ Shows access URLs
-
-### 5. Access Points
-
-- **Frontend Dashboard**: http://localhost:3000
-- **Backend API**: http://localhost:3003
-- **API Health Check**: http://localhost:3003/health
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
-
-## 📋 Checklist Before First Run
-
-- [ ] Docker installed and running
-- [ ] Docker Compose available
-- [ ] Ports 3000, 3003, 5432, 6379 available
-- [ ] At least 2GB free disk space (for Docker images)
-- [ ] Internet connection (to pull Docker images)
-
-## 🎉 You're Ready!
-
-Once Docker is installed, just run:
-
+### Services Not Healthy
 ```bash
-make dev
+# Check logs
+make logs
+
+# Rebuild and restart
+make build && make dev
 ```
 
-That's it! The single command will set up everything.
+## What's Running?
 
-## Need Help?
+The environment includes:
+- **Application Frontend** (Next.js) - Port 3000
+- **Dashboard Frontend** (Next.js) - Port 3001
+- **Backend API** (Fastify) - Port 3003
+- **PostgreSQL** - Port 5432
+- **Redis** - Port 6379
 
-- Full setup guide: `docs/SETUP_GUIDE.md`
-- Troubleshooting: Check service logs with `make logs`
-- Type checking: `make check`
+All services are containerized and orchestrated via Docker Compose.
 
+## Next Steps
+
+- Explore the dashboard at http://localhost:3001
+- Check service health and logs
+- Monitor resource usage
+- Configure settings via the Configuration page
+
+## Need More Help?
+
+- **Troubleshooting**: See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- **Architecture**: See [Architecture.md](./Architecture.md)
+- **Project Status**: See [STATUS.md](./STATUS.md)
