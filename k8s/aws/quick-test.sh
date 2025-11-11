@@ -45,15 +45,54 @@ echo "📦 Step 1: Creating EKS cluster (this takes 15-20 minutes)..."
 if eksctl get cluster --name $CLUSTER_NAME --region $AWS_REGION >/dev/null 2>&1; then
     echo "✅ Cluster already exists, skipping creation"
 else
-    eksctl create cluster \
-        --name $CLUSTER_NAME \
-        --region $AWS_REGION \
-        --node-type t3.small \
-        --nodes 1 \
-        --nodes-min 1 \
-        --nodes-max 2 \
-        --managed \
-        --with-oidc
+    # Check if we can use default VPC (to avoid VPC limit issues)
+    DEFAULT_VPC=$(aws ec2 describe-vpcs --region $AWS_REGION \
+      --filters "Name=isDefault,Values=true" \
+      --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
+    
+    if [ -n "$DEFAULT_VPC" ] && [ "$DEFAULT_VPC" != "None" ]; then
+        echo "  Using existing default VPC: $DEFAULT_VPC"
+        # Get subnets from default VPC
+        SUBNETS=$(aws ec2 describe-subnets --region $AWS_REGION \
+          --filters "Name=vpc-id,Values=$DEFAULT_VPC" \
+          --query 'Subnets[*].SubnetId' --output text)
+        
+        # Create cluster config with existing VPC
+        CLUSTER_CONFIG="/tmp/eks-cluster-config-$$.yaml"
+        cat > $CLUSTER_CONFIG <<EOFCONFIG
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: $CLUSTER_NAME
+  region: $AWS_REGION
+
+vpc:
+  id: $DEFAULT_VPC
+
+nodeGroups:
+  - name: ng-1
+    instanceType: t3.small
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 2
+    ssh:
+      allow: false
+EOFCONFIG
+        eksctl create cluster -f $CLUSTER_CONFIG
+        rm -f $CLUSTER_CONFIG
+    else
+        # Try creating new VPC (may fail if at limit)
+        eksctl create cluster \
+            --name $CLUSTER_NAME \
+            --region $AWS_REGION \
+            --node-type t3.small \
+            --nodes 1 \
+            --nodes-min 1 \
+            --nodes-max 2 \
+            --managed \
+            --with-oidc
+    fi
     echo "✅ Cluster created"
 fi
 
