@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev-env
+  labels:
+    name: dev-env
+    app: zero-to-running
+
