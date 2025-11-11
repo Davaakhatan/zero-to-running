@@ -43,11 +43,12 @@ A single-command developer environment that:
 
 ## Technology Stack
 
-- **Frontend**: TypeScript, React, Tailwind CSS
+- **Frontend**: TypeScript, React, Tailwind CSS, Next.js 16
 - **Backend API**: Node.js, Fastify, TypeScript
 - **Database**: PostgreSQL
 - **Cache**: Redis
-- **Orchestration**: Kubernetes (k8s) on Azure Kubernetes Service (AKS)
+- **Local Development**: Docker Compose (orchestration)
+- **Production Deployment**: Kubernetes (k8s) on Azure Kubernetes Service (AKS) - *Planned*
 - **Containerization**: Docker
 
 ## Functional Requirements

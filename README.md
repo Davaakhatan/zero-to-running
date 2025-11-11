@@ -47,7 +47,8 @@ Dashboard Frontend (Port 3001) ────┘
 - **Backend**: Node.js, Fastify, TypeScript
 - **Database**: PostgreSQL
 - **Cache**: Redis
-- **Orchestration**: Kubernetes on Azure Kubernetes Service (AKS)
+- **Local Development**: Docker Compose (orchestration)
+- **Production Deployment**: Kubernetes on Azure Kubernetes Service (AKS) - *Planned*
 - **Containerization**: Docker
 
 ## 📁 Project Structure
