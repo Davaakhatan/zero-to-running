@@ -37,13 +37,14 @@ A single-command developer environment that:
 - Coding time: 80%+ time spent writing code vs managing infrastructure
 - Support reduction: 90% decrease in environment-related tickets
 
-## Technology Stack (Per PRD)
+## Technology Stack
 
-- **Frontend**: TypeScript, React, Tailwind CSS
-- **Backend API**: Node.js/Dora, TypeScript
+- **Frontend**: TypeScript, React, Tailwind CSS, Next.js 16
+- **Backend API**: Node.js, Fastify, TypeScript
 - **Database**: PostgreSQL
 - **Cache**: Redis
-- **Orchestration**: Kubernetes (k8s) on Azure Kubernetes Service (AKS)
+- **Local Development**: Docker Compose (orchestration)
+- **Production Deployment**: Kubernetes (k8s) on Azure Kubernetes Service (AKS) - *Planned*
 - **Containerization**: Docker
 
 ## Key Requirements
