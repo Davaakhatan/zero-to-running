@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Download, Search, CheckCircle2, AlertCircle, XCircle, Clock, TrendingUp, Activity } from "lucide-react"
+import { FileText, Download, Search, CheckCircle2, AlertCircle, XCircle, Clock, TrendingUp, Activity, Loader2 } from "lucide-react"
+import { getLogs, getDetailedHealth, type LogEntry as ApiLogEntry, type HealthCheck as ApiHealthCheck } from "@/lib/api-client"
 
 interface HealthCheck {
   id: string
@@ -24,103 +25,86 @@ interface LogEntry {
 }
 
 export function LogViewerHealthChecks() {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: "1",
-      timestamp: new Date(Date.now() - 2 * 60000),
-      level: "info",
-      service: "API Server",
-      message: "Health check passed",
-      details: "Response time: 45ms",
-    },
-    {
-      id: "2",
-      timestamp: new Date(Date.now() - 5 * 60000),
-      level: "warning",
-      service: "Cache Service",
-      message: "Slow response detected",
-      details: "Response time: 234ms (threshold: 200ms)",
-    },
-    {
-      id: "3",
-      timestamp: new Date(Date.now() - 8 * 60000),
-      level: "error",
-      service: "Storage Service",
-      message: "Service unavailable",
-      details: "Connection timeout after 30s",
-    },
-    {
-      id: "4",
-      timestamp: new Date(Date.now() - 12 * 60000),
-      level: "info",
-      service: "Database",
-      message: "Health check passed",
-      details: "Response time: 12ms",
-    },
-    {
-      id: "5",
-      timestamp: new Date(Date.now() - 15 * 60000),
-      level: "debug",
-      service: "Auth Service",
-      message: "Cache hit rate: 95%",
-      details: "Total requests: 1,234",
-    },
-    {
-      id: "6",
-      timestamp: new Date(Date.now() - 18 * 60000),
-      level: "warning",
-      service: "API Server",
-      message: "High error rate detected",
-      details: "Error rate: 2.5% (threshold: 1%)",
-    },
-  ])
-
-  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([
-    {
-      id: "1",
-      service: "API Server",
-      timestamp: new Date(Date.now() - 1 * 60000),
-      status: "passed",
-      responseTime: 45,
-      details: "All endpoints responding normally",
-    },
-    {
-      id: "2",
-      service: "Database",
-      timestamp: new Date(Date.now() - 1 * 60000),
-      status: "passed",
-      responseTime: 12,
-      details: "Connection pool healthy, query performance normal",
-    },
-    {
-      id: "3",
-      service: "Cache Service",
-      timestamp: new Date(Date.now() - 2 * 60000),
-      status: "warning",
-      responseTime: 234,
-      details: "High memory usage: 85%, consider optimization",
-    },
-    {
-      id: "4",
-      service: "Storage Service",
-      timestamp: new Date(Date.now() - 5 * 60000),
-      status: "failed",
-      responseTime: 0,
-      details: "Unable to connect, disk space critical: 95% full",
-    },
-    {
-      id: "5",
-      service: "Auth Service",
-      timestamp: new Date(Date.now() - 1 * 60000),
-      status: "passed",
-      responseTime: 78,
-      details: "Token validation working, no authentication delays",
-    },
-  ])
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [logLevelFilter, setLogLevelFilter] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+
+  const fetchData = async () => {
+    try {
+      setError(null)
+      
+      // Fetch logs
+      const logsData = await getLogs({ limit: 50 })
+      const logsWithDates: LogEntry[] = logsData.map(log => ({
+        ...log,
+        timestamp: new Date(log.timestamp),
+      }))
+      setLogs(logsWithDates)
+
+      // Fetch health checks
+      const healthData = await getDetailedHealth()
+      const checks: HealthCheck[] = []
+      
+      // Convert health check data to our format
+      if (healthData.dependencies) {
+        // Database health check
+        const dbStatus = healthData.dependencies.database.status === 'healthy' ? 'passed' : 
+                        healthData.dependencies.database.status === 'unhealthy' ? 'failed' : 'warning'
+        checks.push({
+          id: 'database',
+          service: 'Database',
+          timestamp: new Date(healthData.timestamp),
+          status: dbStatus,
+          responseTime: healthData.dependencies.database.details.responseTime || 0,
+          details: healthData.dependencies.database.details.error || 
+                  `Connection healthy, response time: ${healthData.dependencies.database.details.responseTime}ms`,
+        })
+
+        // Redis health check
+        const redisStatus = healthData.dependencies.redis.status === 'healthy' ? 'passed' : 
+                          healthData.dependencies.redis.status === 'unhealthy' ? 'failed' : 'warning'
+        checks.push({
+          id: 'redis',
+          service: 'Cache Service',
+          timestamp: new Date(healthData.timestamp),
+          status: redisStatus,
+          responseTime: healthData.dependencies.redis.details.responseTime || 0,
+          details: healthData.dependencies.redis.details.error || 
+                  `Connection healthy, response time: ${healthData.dependencies.redis.details.responseTime}ms`,
+        })
+      }
+
+      // Backend API health check
+      checks.push({
+        id: 'api',
+        service: 'API Server',
+        timestamp: new Date(healthData.timestamp),
+        status: healthData.status === 'healthy' ? 'passed' : 
+                healthData.status === 'degraded' ? 'warning' : 'failed',
+        responseTime: 0, // Could be calculated if needed
+        details: `Backend API is ${healthData.status}`,
+      })
+
+      setHealthChecks(checks)
+    } catch (err) {
+      console.error('Failed to fetch logs and health checks:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getLogLevelColor = (level: string) => {
     switch (level) {
@@ -209,7 +193,23 @@ export function LogViewerHealthChecks() {
 
       {/* Content */}
       <div className="mx-auto max-w-7xl px-8 py-10">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading logs and health checks...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           {/* Health Checks Section */}
           <div className="lg:col-span-1 space-y-6">
             <div className="flex items-center gap-3 mb-6">
@@ -407,6 +407,7 @@ export function LogViewerHealthChecks() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

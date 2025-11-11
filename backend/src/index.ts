@@ -4,6 +4,8 @@ import { healthRoutes } from './routes/health.js';
 import { servicesRoutes } from './routes/services.js';
 import { configRoutes } from './routes/config.js';
 import { logsRoutes } from './routes/logs.js';
+import { setupRoutes } from './routes/setup.js';
+import { securityMiddleware } from './middleware/security.js';
 
 const fastify = Fastify({
   logger: {
@@ -18,12 +20,34 @@ const fastify = Fastify({
       },
     }),
   },
+  // Production optimizations
+  disableRequestLogging: process.env.NODE_ENV === 'production',
+  requestIdLogLabel: 'reqId',
+  requestIdHeader: 'x-request-id',
 });
 
-// Register CORS
+// Register security middleware
+await fastify.register(securityMiddleware);
+
+// Register CORS with production best practices
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
+
 await fastify.register(cors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
 });
 
 // Register routes
@@ -31,6 +55,7 @@ await fastify.register(healthRoutes);
 await fastify.register(servicesRoutes);
 await fastify.register(configRoutes);
 await fastify.register(logsRoutes);
+await fastify.register(setupRoutes);
 
 // Start server
 const start = async () => {

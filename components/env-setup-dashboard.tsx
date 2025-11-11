@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, Plus, Settings, Trash2 } from "lucide-react"
+import { ChevronDown, Plus, Settings, Trash2, Loader2, AlertCircle } from "lucide-react"
+import { getConfig, type Config } from "@/lib/api-client"
 
 interface Environment {
   id: string
@@ -14,41 +15,44 @@ interface Environment {
 }
 
 export function EnvSetupDashboard() {
-  const [environments, setEnvironments] = useState<Environment[]>([
-    {
-      id: "1",
-      name: "Production",
-      type: "production",
-      status: "active",
-      variables: {
-        DATABASE_URL: "postgres://prod.db.example.com",
-        API_KEY: "••••••••••••••••",
-        NEXT_PUBLIC_API_URL: "https://api.example.com",
-      },
-    },
-    {
-      id: "2",
-      name: "Staging",
-      type: "staging",
-      status: "active",
-      variables: {
-        DATABASE_URL: "postgres://staging.db.example.com",
-        API_KEY: "••••••••••••••••",
-        NEXT_PUBLIC_API_URL: "https://staging-api.example.com",
-      },
-    },
-    {
-      id: "3",
+  const [environments, setEnvironments] = useState<Environment[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchEnvironments = async () => {
+      try {
+        setError(null)
+        const config = await getConfig()
+        
+        // Build environments from config
+        // In production, this would come from a dedicated /api/environments endpoint
+        const envs: Environment[] = [
+          {
+            id: "development",
       name: "Development",
       type: "development",
       status: "active",
       variables: {
-        DATABASE_URL: "postgres://localhost:5432/dev",
-        API_KEY: "••••••••••••••••",
-        NEXT_PUBLIC_API_URL: "http://localhost:3000",
-      },
-    },
-  ])
+              DATABASE_URL: `postgres://${config.services.database.user}@${config.services.database.host}:${config.services.database.port}/${config.services.database.name}`,
+              REDIS_URL: `redis://${config.services.redis.host}:${config.services.redis.port}`,
+              BACKEND_URL: `http://${config.services.backend.host}:${config.services.backend.port}`,
+              FRONTEND_URL: `http://${config.services.frontend.host}:${config.services.frontend.port}`,
+            },
+          },
+        ]
+        
+        setEnvironments(envs)
+      } catch (err) {
+        console.error('Failed to fetch environments:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load environments')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEnvironments()
+  }, [])
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -89,8 +93,29 @@ export function EnvSetupDashboard() {
 
       {/* Content */}
       <div className="mx-auto max-w-7xl px-8 py-10">
-        <div className="space-y-4">
-          {environments.map((env) => (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading environments...</span>
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            </div>
+          </div>
+        ) : environments.length === 0 ? (
+          <div className="rounded-xl border bg-card p-12 text-center">
+            <p className="text-muted-foreground mb-4">No environments configured</p>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Environment
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {environments.map((env) => (
             <Card key={env.id} className="overflow-hidden rounded-2xl border shadow-sm hover:shadow-lg transition-all duration-200">
               <div
                 className="flex cursor-pointer items-center justify-between px-6 py-4 transition-colors hover:bg-muted/30"
@@ -163,8 +188,9 @@ export function EnvSetupDashboard() {
                 </div>
               )}
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

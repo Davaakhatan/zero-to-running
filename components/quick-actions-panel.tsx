@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -11,8 +11,10 @@ import {
   PowerOff,
   RefreshCw,
   Settings,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react"
+import { getServices, type Service as ApiService } from "@/lib/api-client"
 
 interface Service {
   id: string
@@ -22,12 +24,45 @@ interface Service {
 }
 
 export function QuickActionsPanel() {
-  const [services, setServices] = useState<Service[]>([
-    { id: "postgresql", name: "PostgreSQL", status: "running", canRestart: true },
-    { id: "redis", name: "Redis", status: "running", canRestart: true },
-    { id: "backend", name: "Backend API", status: "running", canRestart: true },
-    { id: "frontend", name: "Frontend", status: "running", canRestart: true },
-  ])
+  const [services, setServices] = useState<Service[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const apiServices = await getServices()
+        // Map API service status to our local status
+        const mappedServices: Service[] = apiServices.map(apiService => {
+          let status: "running" | "stopped" | "starting" | "stopping" = "stopped"
+          if (apiService.status === "operational") {
+            status = "running"
+          } else if (apiService.status === "degraded") {
+            status = "running" // Treat degraded as running for UI purposes
+          } else if (apiService.status === "down") {
+            status = "stopped"
+          }
+          
+          return {
+            id: apiService.id,
+            name: apiService.name,
+            status,
+            canRestart: true, // All services can be restarted
+          }
+        })
+        setServices(mappedServices)
+      } catch (err) {
+        console.error('Failed to fetch services for quick actions:', err)
+        setServices([]) // Show empty state instead of mock data
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchServices()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchServices, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const [isStartingAll, setIsStartingAll] = useState(false)
   const [isStoppingAll, setIsStoppingAll] = useState(false)
@@ -69,6 +104,17 @@ export function QuickActionsPanel() {
 
   const allRunning = services.every(s => s.status === "running")
   const allStopped = services.every(s => s.status === "stopped")
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading services...</span>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <Card className="p-6">

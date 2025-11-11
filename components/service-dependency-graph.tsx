@@ -1,7 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { Database, Server, Globe, Zap, ArrowRight } from "lucide-react"
+import { Database, Server, Globe, Zap, ArrowRight, Loader2, AlertCircle } from "lucide-react"
+import { getServices, type Service as ApiService } from "@/lib/api-client"
 
 interface Service {
   id: string
@@ -12,36 +14,58 @@ interface Service {
 }
 
 export function ServiceDependencyGraph() {
-  const services: Service[] = [
-    {
-      id: "postgresql",
-      name: "PostgreSQL",
-      type: "database",
-      status: "operational",
-      dependencies: [],
-    },
-    {
-      id: "redis",
-      name: "Redis",
-      type: "cache",
-      status: "operational",
-      dependencies: [],
-    },
-    {
-      id: "backend",
-      name: "Backend API",
-      type: "api",
-      status: "operational",
-      dependencies: ["postgresql", "redis"],
-    },
-    {
-      id: "frontend",
-      name: "Frontend",
-      type: "frontend",
-      status: "operational",
-      dependencies: ["backend"],
-    },
-  ]
+  const [services, setServices] = useState<Service[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const apiServices = await getServices()
+        
+        // Map API services to our graph format
+        const mappedServices: Service[] = apiServices.map(apiService => {
+          let type: "database" | "cache" | "api" | "frontend" = "api"
+          let dependencies: string[] = []
+
+          if (apiService.id === "database") {
+            type = "database"
+            dependencies = []
+          } else if (apiService.id === "cache") {
+            type = "cache"
+            dependencies = []
+          } else if (apiService.id === "api-server") {
+            type = "api"
+            dependencies = ["database", "cache"]
+          } else if (apiService.id === "frontend") {
+            type = "frontend"
+            dependencies = ["api-server"]
+          }
+
+          return {
+            id: apiService.id,
+            name: apiService.name,
+            type,
+            status: apiService.status,
+            dependencies,
+          }
+        })
+
+        setServices(mappedServices)
+      } catch (err) {
+        console.error('Failed to fetch services for dependency graph:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load services')
+        setServices([]) // Show empty state instead of mock data
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchServices()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchServices, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getServiceIcon = (type: string) => {
     switch (type) {
@@ -69,6 +93,38 @@ export function ServiceDependencyGraph() {
       default:
         return "border-border bg-card"
     }
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading dependencies...</span>
+        </div>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircle className="h-5 w-5" />
+          <p className="text-sm">{error}</p>
+        </div>
+      </Card>
+    )
+  }
+
+  if (services.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">No services available</p>
+        </div>
+      </Card>
+    )
   }
 
   return (

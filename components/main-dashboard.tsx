@@ -19,7 +19,9 @@ import {
   Rocket,
   Network,
   Zap,
-  BarChart3
+  BarChart3,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -138,6 +140,24 @@ export function MainDashboard() {
 
       {/* Main Content */}
       <div className="flex-1">
+        {/* Sidebar Toggle Button */}
+        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b">
+          <div className="flex items-center justify-between px-4 py-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="rounded-lg"
+              aria-label="Toggle sidebar"
+            >
+              {showSidebar ? (
+                <PanelLeftClose className="h-5 w-5" />
+              ) : (
+                <PanelLeftOpen className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </div>
         {renderView()}
       </div>
     </div>

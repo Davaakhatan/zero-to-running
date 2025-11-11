@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -16,50 +16,51 @@ import {
   Clock,
   Zap
 } from "lucide-react"
-
-interface Prerequisite {
-  name: string
-  status: "checking" | "installed" | "missing"
-  version?: string
-  required: boolean
-  description: string
-}
-
-interface SetupStep {
-  id: string
-  name: string
-  status: "pending" | "in-progress" | "completed" | "failed"
-  service?: string
-  duration?: number
-}
+import { getSetupStatus, type Prerequisite, type SetupStep } from "@/lib/api-client"
 
 export function SetupWizard() {
-  const [prerequisites, setPrerequisites] = useState<Prerequisite[]>([
-    { name: "Docker", status: "checking", required: true, description: "Container runtime" },
-    { name: "kubectl", status: "checking", required: true, description: "Kubernetes CLI" },
-    { name: "Azure CLI", status: "checking", required: false, description: "For AKS access" },
-    { name: "Node.js", status: "checking", required: true, description: "v18 or higher" },
-    { name: "pnpm", status: "checking", required: true, description: "Package manager" },
-  ])
-
-  const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
-    { id: "1", name: "Validate Prerequisites", status: "in-progress" },
-    { id: "2", name: "Load Configuration", status: "pending" },
-    { id: "3", name: "Start PostgreSQL", status: "pending", service: "postgresql" },
-    { id: "4", name: "Start Redis", status: "pending", service: "redis" },
-    { id: "5", name: "Start Backend API", status: "pending", service: "backend" },
-    { id: "6", name: "Start Frontend", status: "pending", service: "frontend" },
-    { id: "7", name: "Health Checks", status: "pending" },
-  ])
-
-  const [overallProgress, setOverallProgress] = useState(0)
+  const [prerequisites, setPrerequisites] = useState<Prerequisite[]>([])
+  const [setupSteps, setSetupSteps] = useState<SetupStep[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [setupTime, setSetupTime] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
 
-  const allPrerequisitesMet = prerequisites.every(p => !p.required || p.status === "installed")
+  useEffect(() => {
+    const fetchSetupStatus = async () => {
+      try {
+        setError(null)
+        const status = await getSetupStatus()
+        setPrerequisites(status.prerequisites)
+        setSetupSteps(status.steps)
+        setIsComplete(status.isComplete)
+      } catch (err) {
+        console.error('Failed to fetch setup status:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load setup status')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSetupStatus()
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(fetchSetupStatus, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (!isComplete) {
+      const timer = setInterval(() => {
+        setSetupTime(prev => prev + 1)
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [isComplete])
+
+  const allPrerequisitesMet = prerequisites.length > 0 && prerequisites.every(p => !p.required || p.status === "installed")
   const completedSteps = setupSteps.filter(s => s.status === "completed").length
-  const totalSteps = setupSteps.length
-  const progressPercentage = (completedSteps / totalSteps) * 100
+  const totalSteps = setupSteps.length || 7
+  const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -114,8 +115,26 @@ export function SetupWizard() {
 
       {/* Content */}
       <div className="mx-auto max-w-4xl px-8 py-10">
-        {/* Overall Progress */}
-        <Card className="p-6 mb-8 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <Card className="p-6 mb-8">
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Loading setup status...</span>
+            </div>
+          </Card>
+        ) : (
+          <>
+            {/* Overall Progress */}
+            <Card className="p-6 mb-8 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Zap className="h-5 w-5 text-primary" />
@@ -250,6 +269,8 @@ export function SetupWizard() {
             </Button>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

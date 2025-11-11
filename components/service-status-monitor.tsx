@@ -1,70 +1,46 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Activity, AlertCircle, CheckCircle2, Circle, RotateCw, TrendingUp, Zap } from "lucide-react"
+import { Activity, AlertCircle, CheckCircle2, Circle, RotateCw, TrendingUp, Zap, Loader2 } from "lucide-react"
+import { getServices, type Service } from "@/lib/api-client"
 
-interface Service {
-  id: string
-  name: string
-  endpoint: string
-  status: "operational" | "degraded" | "down"
-  responseTime: number
-  uptime: number
+interface ServiceWithDate extends Omit<Service, 'lastChecked'> {
   lastChecked: Date
 }
 
 export function ServiceStatusMonitor() {
-  const [services, setServices] = useState<Service[]>([
-    {
-      id: "1",
-      name: "API Server",
-      endpoint: "https://api.example.com/health",
-      status: "operational",
-      responseTime: 45,
-      uptime: 99.98,
-      lastChecked: new Date(),
-    },
-    {
-      id: "2",
-      name: "Database",
-      endpoint: "https://db.example.com/health",
-      status: "operational",
-      responseTime: 12,
-      uptime: 99.99,
-      lastChecked: new Date(),
-    },
-    {
-      id: "3",
-      name: "Cache Service",
-      endpoint: "https://cache.example.com/health",
-      status: "degraded",
-      responseTime: 234,
-      uptime: 98.5,
-      lastChecked: new Date(),
-    },
-    {
-      id: "4",
-      name: "Auth Service",
-      endpoint: "https://auth.example.com/health",
-      status: "operational",
-      responseTime: 78,
-      uptime: 99.97,
-      lastChecked: new Date(),
-    },
-    {
-      id: "5",
-      name: "Storage Service",
-      endpoint: "https://storage.example.com/health",
-      status: "down",
-      responseTime: 0,
-      uptime: 95.2,
-      lastChecked: new Date(),
-    },
-  ])
-
+  const [services, setServices] = useState<ServiceWithDate[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchServices = async () => {
+    try {
+      setError(null)
+      const data = await getServices()
+      // Convert lastChecked string to Date
+      const servicesWithDates: ServiceWithDate[] = data.map(service => ({
+        ...service,
+        lastChecked: new Date(service.lastChecked),
+      }))
+      setServices(servicesWithDates)
+    } catch (err) {
+      console.error('Failed to fetch services:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load services')
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchServices()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchServices, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getStatusIcon = (status: "operational" | "degraded" | "down") => {
     switch (status) {
@@ -101,16 +77,7 @@ export function ServiceStatusMonitor() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate refresh delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    // Update all lastChecked times
-    setServices((prev) =>
-      prev.map((service) => ({
-        ...service,
-        lastChecked: new Date(),
-      })),
-    )
-    setIsRefreshing(false)
+    await fetchServices()
   }
 
   const formatLastChecked = (date: Date) => {
@@ -146,11 +113,11 @@ export function ServiceStatusMonitor() {
             </div>
             <Button 
               onClick={handleRefresh} 
-              disabled={isRefreshing} 
+              disabled={isRefreshing || isLoading} 
               className="gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
             >
               <RotateCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              {isRefreshing ? "Refreshing..." : "Refresh"}
+              {isRefreshing ? "Refreshing..." : isLoading ? "Loading..." : "Refresh"}
             </Button>
           </div>
         </div>
@@ -229,8 +196,28 @@ export function ServiceStatusMonitor() {
 
       {/* Services List */}
       <div className="mx-auto max-w-7xl px-8 py-10">
-        <div className="space-y-4">
-          {services.map((service) => (
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading services...</span>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="rounded-xl border bg-card p-12 text-center">
+            <p className="text-muted-foreground">No services found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {services.map((service) => (
             <div
               key={service.id}
               className={`rounded-2xl border overflow-hidden transition-all duration-200 hover:shadow-xl group ${getStatusBgColor(service.status)}`}
@@ -314,7 +301,8 @@ export function ServiceStatusMonitor() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

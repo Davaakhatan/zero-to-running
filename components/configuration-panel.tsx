@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Settings, Save, X, Plus, Trash2, Bell, AlertTriangle } from "lucide-react"
+import { Settings, Save, X, Plus, Trash2, Bell, AlertTriangle, Loader2, AlertCircle } from "lucide-react"
+import { getConfig, updateConfig, getServices, type Config } from "@/lib/api-client"
 
 interface ServiceConfig {
   id: string
@@ -24,59 +25,48 @@ interface AlertSetting {
 }
 
 export function ConfigurationPanel() {
-  const [configs, setConfigs] = useState<ServiceConfig[]>([
-    {
-      id: "1",
-      serviceName: "API Server",
-      checkInterval: 30,
-      responseTimeThreshold: 500,
-      uptimeThreshold: 99.5,
-      alertsEnabled: true,
-      notificationChannels: ["email", "slack"],
-    },
-    {
-      id: "2",
-      serviceName: "Database",
-      checkInterval: 60,
-      responseTimeThreshold: 200,
-      uptimeThreshold: 99.9,
-      alertsEnabled: true,
-      notificationChannels: ["email"],
-    },
-    {
-      id: "3",
-      serviceName: "Cache Service",
-      checkInterval: 45,
-      responseTimeThreshold: 300,
-      uptimeThreshold: 99.0,
-      alertsEnabled: false,
-      notificationChannels: [],
-    },
-  ])
+  const [config, setConfig] = useState<Config | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
-  const [alerts, setAlerts] = useState<AlertSetting[]>([
-    {
-      id: "1",
-      name: "Admin Email",
-      type: "email",
-      enabled: true,
-      value: "admin@example.com",
-    },
-    {
-      id: "2",
-      name: "Slack Channel",
-      type: "slack",
-      enabled: true,
-      value: "#alerts",
-    },
-    {
-      id: "3",
-      name: "Webhook URL",
-      type: "webhook",
-      enabled: false,
-      value: "https://example.com/webhook",
-    },
-  ])
+  const [configs, setConfigs] = useState<ServiceConfig[]>([])
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        setError(null)
+        const [configData, servicesData] = await Promise.all([
+          getConfig(),
+          getServices(),
+        ])
+        
+        setConfig(configData)
+        
+        // Build service configs from actual services and config
+        const serviceConfigs: ServiceConfig[] = servicesData.map((service, index) => ({
+          id: String(index + 1),
+          serviceName: service.name,
+          checkInterval: configData.healthChecks?.interval || 30,
+          responseTimeThreshold: service.id === 'database' ? 200 : service.id === 'cache' ? 300 : 500,
+          uptimeThreshold: service.id === 'database' ? 99.9 : service.id === 'cache' ? 99.0 : 99.5,
+          alertsEnabled: true,
+          notificationChannels: service.id === 'api-server' ? ["email", "slack"] : ["email"],
+        }))
+        
+        setConfigs(serviceConfigs)
+      } catch (err) {
+        console.error('Failed to fetch config:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load configuration')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchConfig()
+  }, [])
+
+  const [alerts, setAlerts] = useState<AlertSetting[]>([])
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingConfig, setEditingConfig] = useState<ServiceConfig | null>(null)
@@ -92,11 +82,37 @@ export function ConfigurationPanel() {
     setEditingConfig(null)
   }
 
-  const saveEdit = () => {
-    if (editingConfig) {
-      setConfigs((prev) => prev.map((c) => (c.id === editingConfig.id ? editingConfig : c)))
-      setEditingId(null)
-      setEditingConfig(null)
+  const saveEdit = async () => {
+    if (editingConfig && config) {
+      try {
+        setIsSaving(true)
+        setError(null)
+        setSaveSuccess(false)
+        
+        // Update local configs
+        setConfigs((prev) => prev.map((c) => (c.id === editingConfig.id ? editingConfig : c)))
+        
+        // Update backend config if health check interval changed
+        if (editingConfig.serviceName === "API Server") {
+          const updatedConfig = await updateConfig({
+            healthChecks: {
+              ...config.healthChecks,
+              interval: editingConfig.checkInterval,
+            },
+          })
+          setConfig(updatedConfig)
+        }
+        
+        setEditingId(null)
+        setEditingConfig(null)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+      } catch (err) {
+        console.error('Failed to save config:', err)
+        setError(err instanceof Error ? err.message : 'Failed to save configuration')
+      } finally {
+        setIsSaving(false)
+      }
     }
   }
 
@@ -150,7 +166,33 @@ export function ConfigurationPanel() {
 
       {/* Content */}
       <div className="mx-auto max-w-7xl px-8 py-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        )}
+        {saveSuccess && (
+          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <div className="flex items-center gap-2">
+              <Save className="h-5 w-5 text-emerald-500" />
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                Configuration saved successfully!
+              </p>
+            </div>
+          </div>
+        )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading configuration...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Service Configurations */}
           <div className="lg:col-span-2">
             <h2 className="text-xl font-bold text-foreground mb-6">Service Configurations</h2>
@@ -162,9 +204,18 @@ export function ConfigurationPanel() {
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-foreground">{config.serviceName}</h3>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={saveEdit} className="gap-2 shadow-sm hover:shadow-md transition-all">
-                            <Save className="h-4 w-4" />
-                            Save
+                          <Button 
+                            size="sm" 
+                            onClick={saveEdit} 
+                            disabled={isSaving}
+                            className="gap-2 shadow-sm hover:shadow-md transition-all"
+                          >
+                            {isSaving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                            {isSaving ? "Saving..." : "Save"}
                           </Button>
                           <Button size="sm" variant="outline" onClick={cancelEdit} className="border-border/50 hover:bg-muted/50">
                             <X className="h-4 w-4" />
@@ -355,6 +406,7 @@ export function ConfigurationPanel() {
             </Card>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

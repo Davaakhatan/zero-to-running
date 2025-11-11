@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Cpu, HardDrive, MemoryStick, Activity } from "lucide-react"
+import { Cpu, HardDrive, MemoryStick, Activity, Loader2, AlertCircle } from "lucide-react"
+import { getServices, type Service } from "@/lib/api-client"
 
 interface ResourceUsage {
   service: string
@@ -13,12 +15,39 @@ interface ResourceUsage {
 }
 
 export function ResourceUsageDashboard() {
-  const resources: ResourceUsage[] = [
-    { service: "PostgreSQL", cpu: 12, memory: 45, disk: 23, network: 8 },
-    { service: "Redis", cpu: 5, memory: 15, disk: 2, network: 12 },
-    { service: "Backend API", cpu: 18, memory: 32, disk: 5, network: 15 },
-    { service: "Frontend", cpu: 8, memory: 25, disk: 10, network: 5 },
-  ]
+  const [services, setServices] = useState<Service[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setError(null)
+        const data = await getServices()
+        setServices(data)
+      } catch (err) {
+        console.error('Failed to fetch services for resource usage:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load services')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchServices()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchServices, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Resource usage data - in production, this would come from a dedicated /api/resources endpoint
+  // For now, show empty state since we don't have real resource metrics
+  const resources: ResourceUsage[] = services.map(service => ({
+    service: service.name,
+    cpu: 0, // Real metrics would come from /api/resources endpoint
+    memory: 0,
+    disk: 0,
+    network: 0,
+  })).filter(r => r.service)
 
   const totalCpu = resources.reduce((sum, r) => sum + r.cpu, 0)
   const totalMemory = resources.reduce((sum, r) => sum + r.memory, 0)
@@ -28,6 +57,52 @@ export function ResourceUsageDashboard() {
     if (value < 50) return "bg-emerald-500"
     if (value < 80) return "bg-amber-500"
     return "bg-red-500"
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Loading resource usage...</span>
+        </div>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircle className="h-5 w-5" />
+          <p className="text-sm">{error}</p>
+        </div>
+      </Card>
+    )
+  }
+
+  // Show empty state if no services or all metrics are zero (no real data)
+  const hasRealData = resources.some(r => r.cpu > 0 || r.memory > 0 || r.disk > 0 || r.network > 0)
+  
+  if (resources.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">No services available</p>
+        </div>
+      </Card>
+    )
+  }
+
+  if (!hasRealData) {
+    return (
+      <Card className="p-6">
+        <div className="text-center py-10">
+          <p className="text-muted-foreground mb-2">Resource metrics not available</p>
+          <p className="text-xs text-muted-foreground">Resource usage data requires a dedicated metrics endpoint</p>
+        </div>
+      </Card>
+    )
   }
 
   return (
