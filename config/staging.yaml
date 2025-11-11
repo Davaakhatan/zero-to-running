@@ -1,0 +1,23 @@
+services:
+  app-frontend:
+    port: 3000
+    host: staging-app.yourdomain.com
+  
+  backend:
+    port: 3003
+    host: staging-api.yourdomain.com
+  
+  database:
+    host: staging-db.yourdomain.com
+    port: 5432
+    name: devenv_staging
+    user: staging_user
+  
+  redis:
+    host: staging-redis.yourdomain.com
+    port: 6379
+
+healthChecks:
+  interval: 30
+  timeout: 5000
+

@@ -1,7 +1,10 @@
-.PHONY: help dev down up build clean logs status health check test
+.PHONY: help dev down up build clean logs status health check test dev-staging dev-production
 
 # Default target
 .DEFAULT_GOAL := help
+
+# Environment selection (dev, staging, production)
+ENV ?= dev
 
 # Colors for output
 BLUE := \033[0;34m
@@ -16,9 +19,17 @@ help: ## Show this help message
 	@echo "$(GREEN)Available commands:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-15s$(NC) %s\n", $$1, $$2}'
 
-dev: ## Start all services (single command setup)
-	@echo "$(BLUE)🚀 Starting Zero-to-Running Developer Environment...$(NC)"
+dev: ## Start all services in development mode (default)
+	@echo "$(BLUE)🚀 Starting Zero-to-Running Developer Environment ($(ENV))...$(NC)"
 	@echo ""
+	@echo "$(YELLOW)Environment: $(ENV)$(NC)"
+	@echo "$(YELLOW)Config file: config/$(ENV).yaml$(NC)"
+	@echo ""
+	@if [ ! -f "config/$(ENV).yaml" ]; then \
+		echo "$(RED)❌ Config file config/$(ENV).yaml not found!$(NC)"; \
+		echo "$(YELLOW)💡 Available environments: dev, staging, production$(NC)"; \
+		exit 1; \
+	fi
 	@echo "$(YELLOW)Checking Docker...$(NC)"
 	@if ! pgrep -f "Docker.app" > /dev/null 2>&1 && ! pgrep -f "com.docker.backend" > /dev/null 2>&1; then \
 		echo "$(RED)❌ Docker Desktop is not running. Please start Docker Desktop and try again.$(NC)"; \
@@ -29,7 +40,7 @@ dev: ## Start all services (single command setup)
 	@echo ""
 	@echo "$(GREEN)Starting services with Docker Compose...$(NC)"
 	@echo "$(YELLOW)This may take a few minutes on first run...$(NC)"
-	docker-compose up -d --build
+	CONFIG_PATH=config/$(ENV).yaml docker-compose up -d --build
 	@echo ""
 	@echo "$(GREEN)✅ Services started!$(NC)"
 	@echo ""
@@ -49,6 +60,12 @@ dev: ## Start all services (single command setup)
 	@echo "$(BLUE)Access the dashboard at: http://localhost:3001$(NC)"
 
 up: dev ## Alias for dev
+
+dev-staging: ## Start services in staging mode
+	@$(MAKE) dev ENV=staging
+
+dev-production: ## Start services in production mode (local)
+	@$(MAKE) dev ENV=production
 
 down: ## Stop and remove all services (clean teardown)
 	@echo "$(YELLOW)🛑 Stopping all services...$(NC)"

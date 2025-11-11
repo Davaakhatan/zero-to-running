@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
     container_name: dev-env-backend
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3003
       HOST: 0.0.0.0
       FRONTEND_URL: http://localhost:3000
@@ -62,6 +62,7 @@ services:
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: info
       IN_DOCKER: "true"
+      CONFIG_PATH: ${CONFIG_PATH:-config/dev.yaml}
     ports:
       - "3003:3003"
     depends_on:

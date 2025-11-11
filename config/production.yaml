@@ -1,0 +1,23 @@
+services:
+  app-frontend:
+    port: 3000
+    host: app.yourdomain.com
+  
+  backend:
+    port: 3003
+    host: api.yourdomain.com
+  
+  database:
+    host: db.yourdomain.com
+    port: 5432
+    name: devenv_production
+    user: prod_user
+  
+  redis:
+    host: redis.yourdomain.com
+    port: 6379
+
+healthChecks:
+  interval: 15
+  timeout: 3000
+
