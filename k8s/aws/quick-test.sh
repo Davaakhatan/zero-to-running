@@ -52,14 +52,54 @@ else
     
     if [ -n "$DEFAULT_VPC" ] && [ "$DEFAULT_VPC" != "None" ]; then
         echo "  Using existing default VPC: $DEFAULT_VPC"
-        # Get subnets from default VPC
-        SUBNETS=$(aws ec2 describe-subnets --region $AWS_REGION \
+        # Get subnets from default VPC (need at least 2 in different AZs)
+        SUBNET_INFO=$(aws ec2 describe-subnets --region $AWS_REGION \
           --filters "Name=vpc-id,Values=$DEFAULT_VPC" \
-          --query 'Subnets[*].SubnetId' --output text)
+          --query 'Subnets[*].[SubnetId,AvailabilityZone,MapPublicIpOnLaunch]' --output text)
         
-        # Create cluster config with existing VPC
-        CLUSTER_CONFIG="/tmp/eks-cluster-config-$$.yaml"
-        cat > $CLUSTER_CONFIG <<EOFCONFIG
+        # Parse subnets into arrays
+        PUBLIC_SUBNETS=()
+        PRIVATE_SUBNETS=()
+        AZ_SET=()
+        
+        while IFS=$'\t' read -r subnet_id az is_public; do
+            if [ "$is_public" = "True" ]; then
+                PUBLIC_SUBNETS+=("$subnet_id")
+            else
+                PRIVATE_SUBNETS+=("$subnet_id")
+            fi
+            # Track unique AZs
+            if [[ ! " ${AZ_SET[@]} " =~ " ${az} " ]]; then
+                AZ_SET+=("$az")
+            fi
+        done <<< "$SUBNET_INFO"
+        
+        # Use public subnets if available, otherwise use all subnets
+        if [ ${#PUBLIC_SUBNETS[@]} -ge 2 ]; then
+            USE_SUBNETS=("${PUBLIC_SUBNETS[@]}")
+            echo "  Using ${#PUBLIC_SUBNETS[@]} public subnets"
+        else
+            ALL_SUBNETS=($(echo "$SUBNET_INFO" | cut -f1))
+            USE_SUBNETS=("${ALL_SUBNETS[@]}")
+            echo "  Using ${#ALL_SUBNETS[@]} subnets (mix of public/private)"
+        fi
+        
+        if [ ${#USE_SUBNETS[@]} -lt 2 ]; then
+            echo "  ⚠️  Warning: Need at least 2 subnets in different AZs"
+            echo "  Falling back to creating new VPC..."
+            eksctl create cluster \
+                --name $CLUSTER_NAME \
+                --region $AWS_REGION \
+                --node-type t3.small \
+                --nodes 1 \
+                --nodes-min 1 \
+                --nodes-max 2 \
+                --managed \
+                --with-oidc
+        else
+            # Create cluster config with existing VPC and subnets
+            CLUSTER_CONFIG="/tmp/eks-cluster-config-$$.yaml"
+            cat > $CLUSTER_CONFIG <<EOFCONFIG
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
@@ -69,6 +109,33 @@ metadata:
 
 vpc:
   id: $DEFAULT_VPC
+  subnets:
+    public:
+EOFCONFIG
+            # Add subnets grouped by AZ (use first 2 unique AZs)
+            SEEN_AZS=()
+            COUNT=0
+            while IFS=$'\t' read -r subnet_id az is_public; do
+                if [[ " ${USE_SUBNETS[@]} " =~ " ${subnet_id} " ]]; then
+                    # Check if we've already added a subnet for this AZ
+                    AZ_SEEN=false
+                    for seen_az in "${SEEN_AZS[@]}"; do
+                        if [ "$seen_az" = "$az" ]; then
+                            AZ_SEEN=true
+                            break
+                        fi
+                    done
+                    
+                    # Add subnet if AZ not seen yet and we haven't added 2 AZs
+                    if [ "$AZ_SEEN" = false ] && [ $COUNT -lt 2 ]; then
+                        echo "      $az: { id: $subnet_id }" >> $CLUSTER_CONFIG
+                        SEEN_AZS+=("$az")
+                        COUNT=$((COUNT+1))
+                    fi
+                fi
+            done <<< "$SUBNET_INFO"
+            
+            cat >> $CLUSTER_CONFIG <<EOFCONFIG
 
 nodeGroups:
   - name: ng-1
@@ -79,8 +146,9 @@ nodeGroups:
     ssh:
       allow: false
 EOFCONFIG
-        eksctl create cluster -f $CLUSTER_CONFIG
-        rm -f $CLUSTER_CONFIG
+            eksctl create cluster -f $CLUSTER_CONFIG
+            rm -f $CLUSTER_CONFIG
+        fi
     else
         # Try creating new VPC (may fail if at limit)
         eksctl create cluster \
