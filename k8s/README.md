@@ -35,23 +35,66 @@ k8s/
 
 ## Quick Start
 
-### AWS EKS
+### Interactive Deployment (Recommended)
+
+Simply run the main deployment script and choose your cloud provider:
+
+```bash
+cd k8s
+./deploy.sh
+```
+
+The script will:
+1. Ask you to choose AWS, Azure, or GCP
+2. Check prerequisites
+3. Guide you through deployment
+
+### Direct Deployment
+
+Or deploy directly to a specific cloud:
+
+#### AWS EKS
 ```bash
 cd k8s/aws
 ./deploy.sh
 ```
 
-### Azure AKS
+#### Azure AKS
 ```bash
 cd k8s/azure
 ./deploy.sh
 ```
 
-### GCP GKE
+#### GCP GKE
 ```bash
 cd k8s/gcp
 ./deploy.sh
 ```
+
+## How to Choose Your Cloud Provider?
+
+### Choose AWS EKS if:
+- ✅ You're already using AWS services
+- ✅ You need tight integration with AWS services (RDS, S3, etc.)
+- ✅ You prefer AWS ecosystem and tools
+- ✅ Your organization has AWS expertise
+
+### Choose Azure AKS if:
+- ✅ You're already using Azure services
+- ✅ You need integration with Microsoft services (Active Directory, etc.)
+- ✅ You prefer Azure ecosystem and tools
+- ✅ Your organization has Azure expertise
+
+### Choose GCP GKE if:
+- ✅ You're already using Google Cloud services
+- ✅ You need integration with Google services (BigQuery, etc.)
+- ✅ You prefer Google Cloud ecosystem and tools
+- ✅ Your organization has GCP expertise
+
+**Don't have a preference?** All three work the same! Choose based on:
+- What your team knows best
+- What cloud you're already using
+- Cost considerations for your region
 
 ## Prerequisites
 

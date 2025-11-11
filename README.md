@@ -4,6 +4,8 @@
 
 ## 🚀 Quick Start
 
+### Local Development
+
 ```bash
 # Clone the repository
 git clone <repo-url>
@@ -18,6 +20,17 @@ open http://localhost:3000
 # Access the dashboard
 open http://localhost:3001
 ```
+
+### Production Deployment (Kubernetes)
+
+Deploy to AWS EKS, Azure AKS, or GCP GKE:
+
+```bash
+cd k8s
+./deploy.sh  # Interactive script - choose your cloud provider
+```
+
+See [k8s/README.md](k8s/README.md) for detailed deployment guides.
 
 ## 📋 Overview
 
