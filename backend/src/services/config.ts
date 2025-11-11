@@ -2,7 +2,26 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import yaml from 'js-yaml';
 
-const CONFIG_PATH = process.env.CONFIG_PATH || join(process.cwd(), 'config', 'dev.yaml');
+// Determine config file based on environment
+const getConfigPath = (): string => {
+  // Priority: 1. CONFIG_PATH env var, 2. NODE_ENV-based, 3. default dev.yaml
+  if (process.env.CONFIG_PATH) {
+    return process.env.CONFIG_PATH;
+  }
+  
+  const env = process.env.NODE_ENV || 'development';
+  let configFile = 'dev.yaml';
+  
+  if (env === 'production') {
+    configFile = 'production.yaml';
+  } else if (env === 'staging') {
+    configFile = 'staging.yaml';
+  }
+  
+  return join(process.cwd(), 'config', configFile);
+};
+
+const CONFIG_PATH = getConfigPath();
 
 export interface Config {
   services: {
