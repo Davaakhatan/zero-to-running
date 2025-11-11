@@ -159,6 +159,29 @@ Each environment uses its own configuration file (`config/dev.yaml`, `config/sta
 
 See [config/README.md](./config/README.md) for details.
 
+## 🧪 Testing
+
+### Test Environment Profiles
+
+```bash
+# Test development environment
+make dev
+curl http://localhost:3003/api/config | jq '.services.database.name'
+# Should show: "devenv"
+
+# Test staging environment
+make down && make dev-staging
+curl http://localhost:3003/api/config | jq '.services.database.name'
+# Should show: "devenv_staging"
+
+# Test production environment
+make down && make dev-production
+curl http://localhost:3003/api/config | jq '.services.database.name'
+# Should show: "devenv_production"
+```
+
+See [config/TEST.md](./config/TEST.md) for comprehensive testing guide.
+
 ## 🤝 Contributing
 
 This is a developer environment setup tool. See [docs/tasks.md](./docs/tasks.md) for current development tasks.
