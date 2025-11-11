@@ -1,103 +1,153 @@
-# Kubernetes Manifests for AKS Deployment
+# Kubernetes Manifests - Multi-Cloud Support
 
-This directory contains Kubernetes manifests for deploying the Zero-to-Running Developer Environment to Azure Kubernetes Service (AKS).
+This directory contains Kubernetes manifests for deploying the Zero-to-Running Developer Environment to **AWS EKS**, **Azure AKS**, and **GCP GKE**.
 
 ## Structure
 
 ```
 k8s/
-├── namespace.yaml                    # Namespace definition
-├── configmap.yaml                    # Configuration (non-sensitive)
-├── secrets.yaml                      # Secrets (sensitive data)
-├── postgres-statefulset.yaml         # PostgreSQL database
-├── redis-deployment.yaml              # Redis cache
-├── backend-deployment.yaml            # Backend API
-├── app-frontend-deployment.yaml      # Application Frontend
-├── dashboard-frontend-deployment.yaml # Dashboard Frontend
-├── ingress.yaml                      # Ingress (optional)
-└── README.md                         # This file
+├── README.md                    # This file
+├── common/                      # Common manifests (shared across all clouds)
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secrets.yaml
+│   ├── postgres-statefulset.yaml
+│   ├── redis-deployment.yaml
+│   ├── backend-deployment.yaml
+│   ├── app-frontend-deployment.yaml
+│   └── dashboard-frontend-deployment.yaml
+├── aws/                         # AWS EKS specific
+│   ├── README.md
+│   ├── storage-class.yaml
+│   ├── ingress.yaml
+│   └── deploy.sh
+├── azure/                       # Azure AKS specific
+│   ├── README.md
+│   ├── storage-class.yaml
+│   ├── ingress.yaml
+│   └── deploy.sh
+└── gcp/                         # GCP GKE specific
+    ├── README.md
+    ├── storage-class.yaml
+    ├── ingress.yaml
+    └── deploy.sh
+```
+
+## Quick Start
+
+### AWS EKS
+```bash
+cd k8s/aws
+./deploy.sh
+```
+
+### Azure AKS
+```bash
+cd k8s/azure
+./deploy.sh
+```
+
+### GCP GKE
+```bash
+cd k8s/gcp
+./deploy.sh
 ```
 
 ## Prerequisites
 
-1. **AKS Cluster**: Create or access an AKS cluster
-2. **kubectl**: Configured to connect to your AKS cluster
-3. **Azure Container Registry (ACR)**: For storing Docker images
-4. **Docker Images**: Build and push images to ACR
+### Common (All Clouds)
+- **kubectl**: Kubernetes CLI configured for your cluster
+- **Docker**: For building images
+- **Container Registry**: ECR (AWS), ACR (Azure), or GCR (GCP)
+
+### AWS EKS
+- AWS CLI configured
+- EKS cluster created
+- IAM permissions for EKS access
+- ECR repository created
+
+### Azure AKS
+- Azure CLI configured
+- AKS cluster created
+- ACR registry created
+
+### GCP GKE
+- gcloud CLI configured
+- GKE cluster created
+- GCR or Artifact Registry repository created
+
+## Cloud-Specific Differences
+
+| Feature | AWS EKS | Azure AKS | GCP GKE |
+|---------|---------|-----------|---------|
+| Container Registry | ECR | ACR | GCR/Artifact Registry |
+| Storage Class | `gp3` (EBS) | `managed-premium` | `standard` (GCE Persistent Disk) |
+| Load Balancer | AWS ELB | Azure Load Balancer | GCP Load Balancer |
+| Ingress Controller | AWS ALB Ingress | NGINX/Application Gateway | GKE Ingress |
+| Image Format | `{account}.dkr.ecr.{region}.amazonaws.com/{repo}` | `{registry}.azurecr.io/{repo}` | `gcr.io/{project}/{repo}` or `{region}-docker.pkg.dev/{project}/{repo}` |
 
 ## Deployment Steps
 
 ### 1. Build and Push Docker Images
 
+#### AWS (ECR)
 ```bash
-# Login to Azure Container Registry
-az acr login --name <your-acr-name>
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {account}.dkr.ecr.us-east-1.amazonaws.com
 
-# Build and push backend
-docker build -t <your-acr-name>.azurecr.io/dev-env-backend:latest ./backend
-docker push <your-acr-name>.azurecr.io/dev-env-backend:latest
+# Build and push
+docker build -t {account}.dkr.ecr.us-east-1.amazonaws.com/dev-env-backend:latest ./backend
+docker push {account}.dkr.ecr.us-east-1.amazonaws.com/dev-env-backend:latest
+```
 
-# Build and push app-frontend
-docker build -t <your-acr-name>.azurecr.io/dev-env-app-frontend:latest ./app-frontend
-docker push <your-acr-name>.azurecr.io/dev-env-app-frontend:latest
+#### Azure (ACR)
+```bash
+# Login to ACR
+az acr login --name {registry-name}
 
-# Build and push dashboard-frontend
-docker build -t <your-acr-name>.azurecr.io/dev-env-dashboard-frontend:latest ./dashboard-frontend
-docker push <your-acr-name>.azurecr.io/dev-env-dashboard-frontend:latest
+# Build and push
+docker build -t {registry-name}.azurecr.io/dev-env-backend:latest ./backend
+docker push {registry-name}.azurecr.io/dev-env-backend:latest
+```
+
+#### GCP (GCR/Artifact Registry)
+```bash
+# Login to GCR
+gcloud auth configure-docker
+
+# Build and push
+docker build -t gcr.io/{project-id}/dev-env-backend:latest ./backend
+docker push gcr.io/{project-id}/dev-env-backend:latest
 ```
 
 ### 2. Update Image References
 
 Update the image references in:
-- `backend-deployment.yaml`
-- `app-frontend-deployment.yaml`
-- `dashboard-frontend-deployment.yaml`
+- `common/backend-deployment.yaml`
+- `common/app-frontend-deployment.yaml`
+- `common/dashboard-frontend-deployment.yaml`
 
-Replace `your-registry.azurecr.io` with your actual ACR name.
+Or use cloud-specific overlays in `aws/`, `azure/`, or `gcp/` directories.
 
 ### 3. Update Secrets
 
-**IMPORTANT**: Update `secrets.yaml` with production secrets. Do NOT commit real secrets to Git.
+**IMPORTANT**: Update `common/secrets.yaml` with production secrets. Do NOT commit real secrets to Git.
 
 For production, use:
-- Azure Key Vault
-- Kubernetes Secrets Manager
-- External secrets operator
+- **AWS**: AWS Secrets Manager or Parameter Store
+- **Azure**: Azure Key Vault
+- **GCP**: Secret Manager
 
-### 4. Deploy to AKS
+### 4. Deploy
 
-```bash
-# Apply manifests in order
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secrets.yaml
-kubectl apply -f k8s/postgres-statefulset.yaml
-kubectl apply -f k8s/redis-deployment.yaml
-kubectl apply -f k8s/backend-deployment.yaml
-kubectl apply -f k8s/app-frontend-deployment.yaml
-kubectl apply -f k8s/dashboard-frontend-deployment.yaml
-
-# Optional: Apply ingress
-kubectl apply -f k8s/ingress.yaml
-```
-
-### 5. Verify Deployment
-
-```bash
-# Check all pods are running
-kubectl get pods -n dev-env
-
-# Check services
-kubectl get services -n dev-env
-
-# Check logs
-kubectl logs -f deployment/backend -n dev-env
-```
+Choose your cloud provider and follow the specific README:
+- [AWS EKS Deployment Guide](aws/README.md)
+- [Azure AKS Deployment Guide](azure/README.md)
+- [GCP GKE Deployment Guide](gcp/README.md)
 
 ## Accessing Services
 
-### Without Ingress (Port Forwarding)
-
+### Port Forwarding (All Clouds)
 ```bash
 # Backend API
 kubectl port-forward service/backend-service 3003:3003 -n dev-env
@@ -109,49 +159,14 @@ kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env
 kubectl port-forward service/dashboard-frontend-service 3001:3000 -n dev-env
 ```
 
-### With Ingress
-
-Update `ingress.yaml` with your domain and configure DNS. Then access:
-- Application: `http://app.yourdomain.com`
-- Dashboard: `http://dashboard.yourdomain.com`
-- API: `http://api.yourdomain.com`
-
-## Configuration
-
-### Environment Variables
-
-Most configuration is in `configmap.yaml`. Update as needed for your environment.
-
-### Resource Limits
-
-Default resource limits are set. Adjust in each deployment file based on your needs:
-- **PostgreSQL**: 256Mi-512Mi memory, 250m-500m CPU
-- **Redis**: 128Mi-256Mi memory, 100m-200m CPU
-- **Backend**: 256Mi-512Mi memory, 250m-500m CPU
-- **Frontends**: 256Mi-512Mi memory, 250m-500m CPU
-
-### Storage
-
-- **PostgreSQL**: Uses PersistentVolumeClaim (10Gi)
-- **Redis**: Uses emptyDir (ephemeral) - change to PVC for production
-
-## Health Checks
-
-All services have:
-- **Liveness Probe**: Restarts container if unhealthy
-- **Readiness Probe**: Only routes traffic when ready
-
-## Init Containers
-
-Dependency ordering is handled by init containers:
-- Backend waits for PostgreSQL and Redis
-- Frontends wait for Backend
+### Ingress (Cloud-Specific)
+Each cloud provider has its own ingress configuration. See cloud-specific README files.
 
 ## Troubleshooting
 
 ```bash
 # Check pod status
-kubectl describe pod <pod-name> -n dev-env
+kubectl get pods -n dev-env
 
 # View logs
 kubectl logs <pod-name> -n dev-env
@@ -159,16 +174,16 @@ kubectl logs <pod-name> -n dev-env
 # Check events
 kubectl get events -n dev-env --sort-by='.lastTimestamp'
 
-# Debug pod
-kubectl exec -it <pod-name> -n dev-env -- sh
+# Describe pod
+kubectl describe pod <pod-name> -n dev-env
 ```
 
 ## Production Considerations
 
-1. **Secrets Management**: Use Azure Key Vault or Kubernetes Secrets Manager
-2. **Storage**: Use Azure Managed Disks for persistent volumes
+1. **Secrets Management**: Use cloud-native secret managers
+2. **Storage**: Use managed storage classes for persistent volumes
 3. **Networking**: Configure proper network policies
-4. **Monitoring**: Set up Azure Monitor or Prometheus
+4. **Monitoring**: Set up cloud-native monitoring (CloudWatch, Azure Monitor, Cloud Monitoring)
 5. **Scaling**: Configure HorizontalPodAutoscaler
 6. **Backup**: Set up database backups
 7. **TLS**: Configure TLS certificates for ingress
@@ -181,6 +196,6 @@ kubectl exec -it <pod-name> -n dev-env -- sh
 kubectl delete namespace dev-env
 
 # Or delete individually
-kubectl delete -f k8s/
+kubectl delete -f common/
+kubectl delete -f {aws|azure|gcp}/
 ```
-
