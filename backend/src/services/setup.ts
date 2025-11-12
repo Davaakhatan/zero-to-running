@@ -141,11 +141,10 @@ export async function getSetupSteps(): Promise<SetupStep[]> {
     { id: '2', name: 'Load Configuration', status: config ? 'completed' : 'failed' },
   ];
 
-  // Check service statuses
+  // Infrastructure services (always shown)
   const dbService = services.find(s => s.id === 'database');
   const redisService = services.find(s => s.id === 'cache');
   const apiService = services.find(s => s.id === 'api-server');
-  const appFrontendService = services.find(s => s.id === 'app-frontend');
 
   steps.push({
     id: '3',
@@ -168,19 +167,50 @@ export async function getSetupSteps(): Promise<SetupStep[]> {
     service: 'backend',
   });
 
-  steps.push({
-    id: '6',
-    name: 'Start Application Frontend',
-    status: appFrontendService?.status === 'operational' ? 'completed' : appFrontendService?.status === 'degraded' ? 'in-progress' : 'pending',
-    service: 'app-frontend',
-  });
+  // Frontend services (dynamically included)
+  const frontendServices = services.filter(s => 
+    s.id === 'app-frontend' || 
+    s.id === 'dashboard-frontend' || 
+    s.id === 'collabcanva'
+  );
+
+  // Service name mapping for display
+  const serviceNameMap: Record<string, string> = {
+    'app-frontend': 'Application Frontend',
+    'dashboard-frontend': 'Dashboard Frontend',
+    'collabcanva': 'CollabCanva',
+  };
+
+  // Service tag mapping
+  const serviceTagMap: Record<string, string> = {
+    'app-frontend': 'app-frontend',
+    'dashboard-frontend': 'dashboard-frontend',
+    'collabcanva': 'collabcanva',
+  };
+
+  // Add frontend services in order: app-frontend, dashboard-frontend, collabcanva
+  const frontendOrder = ['app-frontend', 'dashboard-frontend', 'collabcanva'];
+  let stepId = 6;
+
+  for (const frontendId of frontendOrder) {
+    const frontendService = services.find(s => s.id === frontendId);
+    if (frontendService) {
+      steps.push({
+        id: String(stepId),
+        name: `Start ${serviceNameMap[frontendId] || frontendId}`,
+        status: frontendService.status === 'operational' ? 'completed' : frontendService.status === 'degraded' ? 'in-progress' : 'pending',
+        service: serviceTagMap[frontendId] || frontendId,
+      });
+      stepId++;
+    }
+  }
 
   // Health checks step
   const allHealthy = services.every(s => s.status === 'operational');
   const someHealthy = services.some(s => s.status === 'operational');
   
   steps.push({
-    id: '7',
+    id: String(stepId),
     name: 'Health Checks',
     status: allHealthy ? 'completed' : someHealthy ? 'in-progress' : 'pending',
   });
