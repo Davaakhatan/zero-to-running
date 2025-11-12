@@ -95,6 +95,7 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3003
+    command: sh -c "cd /app && if [ ! -d node_modules/.bin/next ]; then pnpm install --shamefully-hoist --no-frozen-lockfile; fi && pnpm dev"
     ports:
       - "3000:3000"
     depends_on:
