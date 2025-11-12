@@ -27,5 +27,7 @@ EXPOSE 3003
 RUN pnpm build
 
 # Start the application
-CMD ["node", "dist/index.js"]
+# Use dev mode if NODE_ENV is development (for volume mounts in docker-compose)
+# Otherwise use production build (for Kubernetes)
+CMD sh -c "if [ \"$NODE_ENV\" = \"development\" ]; then pnpm dev; else node dist/index.js; fi"
 
