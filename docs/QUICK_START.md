@@ -1,6 +1,11 @@
 # 🚀 Quick Start Guide
 
-Get your development environment running in minutes!
+**Get your development environment running in minutes with a single command!**
+
+This guide is for developers who want to:
+- Set up a complete multi-service environment quickly
+- Start coding immediately without configuration hassles
+- Have a consistent development environment
 
 ## Prerequisites
 
@@ -16,21 +21,21 @@ docker-compose --version
 make --version  # Optional
 ```
 
-## Start Everything
+## Start Everything - One Command
 
 ```bash
 # Single command to start all services
 make dev
 ```
 
-This will:
-1. ✅ Pull Docker images (PostgreSQL, Redis)
-2. ✅ Build frontend and backend images
-3. ✅ Start all services with proper dependencies
-4. ✅ Run health checks
-5. ✅ Show access URLs
+That's it! One command brings up:
+1. ✅ PostgreSQL database (with automatic initialization)
+2. ✅ Redis cache
+3. ✅ Backend API server
+4. ✅ Dashboard Frontend (monitoring)
+5. ✅ Your application frontend (if added)
 
-**Wait 30-60 seconds** for all services to start.
+**Wait 30-60 seconds** for all services to start. The command will show you when everything is ready.
 
 ## Access Your Application
 
@@ -93,14 +98,18 @@ make build && make dev
 
 ## What's Running?
 
-The environment includes:
-- **Application Frontend** (Next.js) - Port 3000
-- **Dashboard Frontend** (Next.js) - Port 3001
-- **Backend API** (Fastify) - Port 3003
-- **PostgreSQL** - Port 5432
-- **Redis** - Port 6379
+After `make dev`, you have a complete development environment:
 
-All services are containerized and orchestrated via Docker Compose.
+**Core Infrastructure** (Framework provides):
+- **PostgreSQL** - Port 5432 (Database)
+- **Redis** - Port 6379 (Cache)
+- **Backend API** - Port 3003 (Fastify API server)
+- **Dashboard Frontend** - Port 3001 (Monitoring dashboard)
+
+**Your Applications** (You add these):
+- **Application Frontend** - Port 3000 (Your app - example included)
+
+All services are containerized and orchestrated via Docker Compose. No manual configuration needed!
 
 ## Next Steps
 

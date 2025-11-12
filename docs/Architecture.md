@@ -3,7 +3,13 @@
 
 ## Architecture Overview
 
-The Zero-to-Running Developer Environment is a **framework/template** that provides infrastructure services and a monitoring dashboard. You add your own applications to this framework. The architecture follows a multi-service pattern with a central backend API, all orchestrated via Docker Compose for local development and Kubernetes for production.
+The Zero-to-Running Developer Environment is a **framework/template** designed to help developers (new and experienced) set up their development environment with a single command (`make dev`). 
+
+**Primary Goal**: Enable developers to go from zero to running in minutes, not hours.
+
+The framework provides infrastructure services (PostgreSQL, Redis, Backend API, Dashboard) that you can use as a foundation. You add your own applications to this framework. The architecture follows a multi-service pattern with a central backend API, all orchestrated via Docker Compose for local development.
+
+**Note**: Kubernetes deployment is optional and primarily for production/demonstration purposes. The main focus is local development setup.
 
 ```
 ┌─────────────────────────────────────────────────────────┐

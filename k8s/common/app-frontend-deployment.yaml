@@ -44,6 +44,14 @@ spec:
           value: "production"
         - name: NEXT_PUBLIC_API_URL
           value: "http://backend-service:3003"
+        # Backend LoadBalancer URL for browser-side API calls (AWS only)
+        # This should be set via ConfigMap or updated per environment
+        - name: NEXT_PUBLIC_BACKEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: dev-env-config
+              key: BACKEND_LOADBALANCER_URL
+              optional: true
         resources:
           requests:
             memory: "256Mi"

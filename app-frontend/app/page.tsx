@@ -19,10 +19,39 @@ export default function Home() {
   const [currentQuote, setCurrentQuote] = useState(quotes[0])
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking")
 
-  // In browser, always use localhost (via port-forward). Server-side can use service name
-  const API_URL = typeof window !== 'undefined' 
-    ? "http://localhost:3003" 
-    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003")
+  // API URL - supports multiple environments
+  const getApiUrl = (): string => {
+    if (typeof window !== 'undefined') {
+      // Always use localhost for port-forwarding
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3003';
+      }
+      
+      // If accessing via AWS LoadBalancer, use backend LoadBalancer URL
+      if (window.location.hostname.includes('.elb.amazonaws.com')) {
+        // Backend LoadBalancer URL should be set via NEXT_PUBLIC_API_URL at build time
+        const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (envApiUrl && envApiUrl.includes('.elb.amazonaws.com')) {
+          return envApiUrl;
+        }
+        // Fallback: try runtime injection
+        const runtimeBackendUrl = (window as any).__BACKEND_URL__;
+        if (runtimeBackendUrl) {
+          return runtimeBackendUrl;
+        }
+        console.warn('Backend LoadBalancer URL not configured. API calls will fail.');
+        return 'http://localhost:3003'; // Will fail, but won't break
+      }
+      
+      // Default: use environment variable or localhost
+      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+    }
+    
+    // Server-side
+    return process.env.NEXT_PUBLIC_API_URL || 'http://backend-service:3003';
+  };
+  
+  const API_URL = getApiUrl();
 
   // Check backend API status
   useEffect(() => {

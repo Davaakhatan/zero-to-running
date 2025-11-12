@@ -6,7 +6,17 @@
 
 ## Executive Summary
 
-The Zero-to-Running Developer Environment is a **framework/template** that revolutionizes how developers set up their local development environments. The goal is to provide infrastructure services (PostgreSQL, Redis, Backend API, Dashboard) that developers can use as a foundation for their applications. New engineers clone the repository, add their application, execute a single command (`make dev`), and instantly have a fully functional multi-service application environment running.
+The Zero-to-Running Developer Environment is a **framework/template** that revolutionizes how developers set up their local development environments. 
+
+**Primary Mission**: Help new and experienced developers get their development environment running in minutes with a single command (`make dev`).
+
+The framework provides infrastructure services (PostgreSQL, Redis, Backend API, Dashboard) that developers can use as a foundation for their applications. Developers clone the repository, add their application, execute a single command (`make dev`), and instantly have a fully functional multi-service application environment running.
+
+**Target Users**:
+- **New Developers**: Fresh hires who need to get started quickly without configuration headaches
+- **Experienced Developers**: Ops-savvy engineers who want to skip boilerplate and focus on building features
+
+**Success Criteria**: A new developer should be able to clone, run `make dev`, and start coding within 5 minutes.
 
 ## Core Problem
 

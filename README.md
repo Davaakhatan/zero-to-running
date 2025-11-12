@@ -1,6 +1,7 @@
 # Zero-to-Running Developer Environment
 
-> A developer environment framework that enables single-command setup for multi-service applications with multi-cloud Kubernetes support. Add your own applications and services.
+> **One command. Full environment. Zero configuration.**  
+> A developer environment framework that enables new and experienced developers to set up a complete multi-service application environment with a single command (`make dev`). No more hours of configuration, dependency management, or "works on my machine" issues.
 
 ## 🚀 Quick Start
 
@@ -20,9 +21,9 @@ open http://localhost:3001      # Dashboard Frontend (monitoring)
 open http://localhost:3003      # Backend API
 ```
 
-### Production Deployment (Kubernetes)
+### Production Deployment (Kubernetes) - Optional
 
-Deploy to AWS EKS, Azure AKS, or GCP GKE:
+For production deployments or demonstrations, you can deploy to AWS EKS, Azure AKS, or GCP GKE:
 
 ```bash
 cd k8s
@@ -34,11 +35,26 @@ cd k8s
 - 🔵 **Azure AKS** - Azure Kubernetes Service  
 - 🟢 **GCP GKE** - Google Kubernetes Engine
 
-See [k8s/README.md](./k8s/README.md) for detailed deployment guides for each cloud provider.
+**Note**: Kubernetes deployment is optional. The primary goal is local development setup with `make dev`. See [k8s/README.md](./k8s/README.md) for detailed deployment guides.
 
 ## 📋 Overview
 
-The Zero-to-Running Developer Environment enables new engineers to set up a complete multi-service application with a single command. No more hours of configuration, dependency management, or "works on my machine" issues.
+**Our Mission**: Help developers (new and experienced) get their development environment running in minutes, not hours.
+
+The Zero-to-Running Developer Environment is a framework that enables developers to set up a complete multi-service application with a **single command** (`make dev`). No more hours of configuration, dependency management, or "works on my machine" issues.
+
+### For New Developers
+- Clone the repo, run `make dev`, start coding
+- All services (database, cache, API, dashboard) are automatically configured
+- Visual dashboard shows everything working in real-time
+
+### For Experienced Developers
+- Skip the boilerplate setup
+- Focus on building features, not infrastructure
+- Consistent environment across team members
+- Easy to add your own services and applications
+
+**Note**: Public URLs shown in documentation are temporary demonstrations for project reviewers. The primary use case is local development setup.
 
 ### What It Does
 
@@ -149,9 +165,12 @@ All documentation is located in the [`docs/`](./docs/) directory:
 
 ## 🎯 Success Metrics
 
-- ✅ **Setup Time**: < 10 minutes (achieved: ~5 minutes)
-- ✅ **Coding Time**: 80%+ time spent writing code (achieved)
-- ⏳ **Support Reduction**: 90% decrease (to be measured)
+- ✅ **Setup Time**: < 10 minutes (achieved: ~5 minutes with `make dev`)
+- ✅ **Coding Time**: 80%+ time spent writing code vs managing infrastructure (achieved)
+- ✅ **Zero Configuration**: Works out of the box (achieved)
+- ⏳ **Support Reduction**: 90% decrease in environment-related issues (to be measured)
+
+**Goal**: New developers should be able to clone, run `make dev`, and start coding within 5 minutes.
 
 ## 🌍 Environment Profiles
 
