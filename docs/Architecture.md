@@ -3,7 +3,7 @@
 
 ## Architecture Overview
 
-The Zero-to-Running Developer Environment follows a **two-frontend architecture** with a multi-service backend, all orchestrated via Docker Compose for local development.
+The Zero-to-Running Developer Environment is a **framework/template** that provides infrastructure services and a monitoring dashboard. You add your own applications to this framework. The architecture follows a multi-service pattern with a central backend API, all orchestrated via Docker Compose for local development and Kubernetes for production.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -46,40 +46,115 @@ The Zero-to-Running Developer Environment follows a **two-frontend architecture*
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Two-Frontend Architecture
+## Framework Architecture
 
-### Why Two Frontends?
+### Core Components
 
-The project separates concerns into two distinct frontends:
+The framework provides:
 
-1. **Application Frontend** (Port 3000)
-   - The actual application developers build
-   - User-facing application
-   - Example: Random Quote Generator
-   - Monitored by the dashboard
+1. **Infrastructure Services** (Core)
+   - PostgreSQL database
+   - Redis cache
+   - Backend API server
+   - Dashboard Frontend (monitoring)
 
-2. **Dashboard Frontend** (Port 3001)
-   - Monitoring and management tool
-   - Service status, logs, resources
-   - Configuration management
-   - Does NOT monitor itself (avoids confusion)
+2. **Your Applications** (You Add These)
+   - Your application frontend(s)
+   - Any additional services you need
+   - The dashboard automatically discovers and monitors them
 
-### Application Frontend
+### Dashboard Frontend (Port 3001)
 
-**Purpose**: The actual application being developed
+**Purpose**: Monitoring and management tool for the entire environment
 
 **Technology Stack**:
 - React 19.2.0
 - Next.js 16 (App Router)
 - TypeScript 5.x
 - Tailwind CSS 4.1.9
+- shadcn/ui component library
 
 **Responsibilities**:
-- User-facing application logic
-- Business features
-- Application-specific UI
+- Real-time service monitoring (dynamically discovers all services)
+- Log aggregation and viewing
+- Resource usage tracking
+- Configuration management
+- Service control (start/stop/restart)
+- Cloud-aware setup wizard
 
-**Health Check**: Exposes `/api/health` endpoint for monitoring
+**Pages**:
+- Setup Wizard (cloud-aware prerequisites)
+- Dashboard Overview
+- Services Status (all discovered services)
+- Logs & Health Checks
+- Configuration
+- Environments
+- Dependencies Graph
+- Resource Usage
+
+## Adding Your Own Applications
+
+### Framework vs. Your Applications
+
+This is a **framework/template**. The core infrastructure (PostgreSQL, Redis, Backend API, Dashboard) is provided. You need to:
+
+1. **Add your application** to the `docker-compose.yml`
+2. **Configure it** to use the Backend API
+3. **Add health check endpoint** (optional but recommended)
+4. **Create Kubernetes manifests** for production (if needed)
+5. **Create build scripts** for your cloud provider
+
+### Example: Adding an Application
+
+```yaml
+# docker-compose.yml
+services:
+  your-app:
+    build: ./your-app
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:3003
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/dbname
+    depends_on:
+      - backend
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### Health Check Requirements
+
+For your application to be monitored by the dashboard:
+
+1. **Expose a health endpoint** (e.g., `/health` or `/api/health`)
+2. **Return JSON** with status information:
+   ```json
+   {
+     "status": "healthy",
+     "timestamp": "2025-01-01T00:00:00Z"
+   }
+   ```
+3. **The dashboard will automatically discover it** via the Backend API's service discovery
+
+### Integration with Backend API
+
+Your applications should communicate with the Backend API:
+
+```typescript
+// Example: Your app calling the backend
+const response = await fetch('http://backend:3003/api/your-endpoint');
+```
+
+The Backend API provides:
+- Database access (PostgreSQL)
+- Cache access (Redis)
+- Service monitoring
+- Log aggregation
+- Configuration management
 
 ### Dashboard Frontend
 
@@ -179,12 +254,15 @@ The project separates concerns into two distinct frontends:
 
 **Purpose**: Local development orchestration
 
-**Services**:
+**Core Services** (Framework Provided):
 1. `postgres` - PostgreSQL database
 2. `redis` - Redis cache
 3. `backend` - Backend API server
-4. `app-frontend` - Application frontend
-5. `dashboard-frontend` - Dashboard frontend
+4. `dashboard-frontend` - Dashboard frontend
+
+**Your Services** (You Add These):
+- Your application(s) - Add to `docker-compose.yml` as needed
+- The dashboard automatically discovers and monitors all services
 
 **Features**:
 - Service dependencies and startup ordering
@@ -195,13 +273,17 @@ The project separates concerns into two distinct frontends:
 
 ### Service Dependencies
 
+**Core Framework Dependencies**:
 ```
 postgres (no dependencies)
 redis (no dependencies)
 backend (depends on: postgres, redis)
-app-frontend (depends on: backend)
-dashboard-frontend (depends on: backend, app-frontend)
+dashboard-frontend (depends on: backend)
 ```
+
+**Your Applications**:
+- Should depend on `backend` (and optionally `postgres`, `redis`)
+- The dashboard will automatically discover them
 
 ## Communication Flow
 
@@ -223,13 +305,16 @@ dashboard-frontend (depends on: backend, app-frontend)
 
 ## Health Checks
 
-All services expose health check endpoints:
-
+**Core Framework Services**:
 - **Backend**: `GET /health`
-- **App Frontend**: `GET /api/health`
 - **Dashboard Frontend**: `GET /api/health`
 - **PostgreSQL**: `pg_isready`
 - **Redis**: `redis-cli ping`
+
+**Your Applications**:
+- Should expose a health endpoint (e.g., `GET /health` or `GET /api/health`)
+- Return JSON with `status` field
+- Backend will automatically discover and monitor it
 
 Backend aggregates all health checks in `/health/detailed`.
 
@@ -291,27 +376,29 @@ Backend aggregates all health checks in `/health/detailed`.
 ## Development Workflow
 
 1. **Start Environment**: `make dev`
-2. **Develop Application**: Edit code in `app-frontend/`
-3. **Monitor Services**: View dashboard at http://localhost:3001
-4. **Check Logs**: Use Logs & Health page
-5. **Control Services**: Use Quick Actions panel
-6. **Stop Environment**: `make down`
+2. **Add Your Application**: Add your app to `docker-compose.yml`
+3. **Develop Application**: Edit your application code
+4. **Monitor Services**: View dashboard at http://localhost:3001 (automatically discovers all services)
+5. **Check Logs**: Use Logs & Health page
+6. **Control Services**: Use Quick Actions panel
+7. **Stop Environment**: `make down`
 
 ## Production Considerations
 
 ### Current State
 - ✅ Local development fully functional
-- ⏳ Kubernetes manifests (planned for AKS)
-- ⏳ Production deployment automation (planned)
+- ✅ Kubernetes manifests for AWS EKS, Azure AKS, GCP GKE
+- ✅ Multi-cloud build scripts
+- ✅ Cloud-aware setup wizard
+- ✅ Dynamic service discovery
 
-### Future Enhancements
-- Kubernetes orchestration (AKS)
-- Production Docker images
-- CI/CD pipeline
+### Production Deployment
+- Kubernetes orchestration (AWS/Azure/GCP)
+- Build scripts for all cloud providers
 - Environment-specific configurations
-- Secrets management
+- Secrets management (cloud-native)
 - Monitoring and alerting
 
 ---
 
-**Note**: This architecture is optimized for local development. Production deployment will use Kubernetes (AKS) with similar service structure but different orchestration.
+**Note**: This is a framework/template. Add your own applications by configuring them in `docker-compose.yml` and creating Kubernetes manifests for production. The dashboard will automatically discover and monitor all services you add.
