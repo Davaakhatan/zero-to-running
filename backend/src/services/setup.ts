@@ -130,7 +130,7 @@ export async function getPrerequisites(): Promise<Prerequisite[]> {
   const checks = await Promise.allSettled(
     prerequisites.map(prereq => {
       const command = checkCommands[prereq.name];
-      if (!command) return Promise.resolve({ name: prereq.name, result: { installed: false } });
+      if (!command) return Promise.resolve({ name: prereq.name, result: { installed: false, version: undefined } });
       return checkCommand(command).then(r => ({ name: prereq.name, result: r }));
     })
   );
