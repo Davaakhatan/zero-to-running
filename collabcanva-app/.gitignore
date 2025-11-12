@@ -1,0 +1,29 @@
+
+!.vscode/extensions.json
+.DS_Store
+.env
+.env.*.local
+.env.local
+.idea
+.vscode/*
+*.local
+*.log
+*.njsproj
+*.ntvs*
+*.sln
+*.suo
+*.sw?
+# Editor directories and files
+# Environment variables
+# Logs
+# Scripts with sensitive data
+dist
+dist-ssr
+fix-user-projects.js
+lerna-debug.log*
+logs
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*

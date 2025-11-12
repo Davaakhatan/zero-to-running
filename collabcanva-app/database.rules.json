@@ -1,0 +1,42 @@
+{
+  "rules": {
+    "sessions": {
+      "global-canvas-v1": {
+        "$userId": {
+          ".read": true,
+          ".write": "$userId === auth.uid"
+        }
+      }
+    },
+    "presence": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "$userId === auth.uid"
+      }
+    },
+    "projects": {
+      "$projectId": {
+        "presence": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "$userId === auth.uid"
+          }
+        },
+        "canvases": {
+          "$canvasId": {
+            "presence": {
+              "$userId": {
+                ".read": "auth != null",
+                ".write": "$userId === auth.uid"
+              }
+            },
+            "cursors": {
+              ".read": "auth != null",
+              ".write": "auth != null"
+            }
+          }
+        }
+      }
+    }
+  }
+}

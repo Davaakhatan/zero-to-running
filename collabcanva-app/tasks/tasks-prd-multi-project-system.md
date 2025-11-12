@@ -1,0 +1,194 @@
+# Task List: Multi-Project System Implementation
+
+## Relevant Files
+
+- `src/contexts/ProjectContext.tsx` - Main context for project management and state
+- `src/contexts/ProjectContext.test.tsx` - Unit tests for ProjectContext
+- `src/components/Projects/ProjectDashboard.tsx` - Main dashboard component showing all projects
+- `src/components/Projects/ProjectDashboard.test.tsx` - Unit tests for ProjectDashboard
+- `src/components/Projects/ProjectCard.tsx` - Individual project card component
+- `src/components/Projects/ProjectCard.test.tsx` - Unit tests for ProjectCard
+- `src/components/Projects/ProjectSettings.tsx` - Project settings and management modal
+- `src/components/Projects/ProjectSettings.test.tsx` - Unit tests for ProjectSettings
+- `src/components/Projects/TeamManagement.tsx` - Team member management component
+- `src/components/Projects/TeamManagement.test.tsx` - Unit tests for TeamManagement
+- `src/components/Projects/CreateProjectModal.tsx` - Modal for creating new projects
+- `src/components/Projects/CreateProjectModal.test.tsx` - Unit tests for CreateProjectModal
+- `src/services/projectService.ts` - Firebase operations for project management
+- `src/services/firebaseProjectStructure.ts` - Firebase collection structure design and helper functions ✅
+- `src/services/migrationService.ts` - Migration service for transitioning from single-canvas to multi-project system ✅
+- `src/hooks/useMigration.ts` - React hook for managing user migration state and progress ✅
+- `src/components/Migration/MigrationModal.tsx` - User-friendly migration interface component ✅
+- `firestore.indexes.json` - Firebase indexes configuration for optimized queries ✅
+- `src/docs/firebase-indexes.md` - Comprehensive documentation for Firebase indexes and usage ✅
+- `src/services/firebaseQueryService.ts` - Optimized query service with pre-configured queries ✅
+- `src/contexts/ProjectContext.tsx` - React Context for project-related state and actions ✅
+- `src/hooks/useProjects.ts` - Custom hook for simplified project management ✅
+- `src/services/projectService.ts` - Firebase operations for project management ✅
+- `src/services/projectService.test.ts` - Unit tests for projectService ✅
+- `src/hooks/useProjectData.ts` - Enhanced hook for project data fetching and caching ✅
+- `src/hooks/useProjectData.test.ts` - Unit tests for useProjectData ✅
+- `src/services/thumbnailService.ts` - Thumbnail generation service for projects and canvases ✅
+- `src/hooks/useThumbnails.ts` - React hook for thumbnail generation and management ✅
+- `src/services/thumbnailService.test.ts` - Unit tests for thumbnailService ✅
+- `src/services/searchService.ts` - Search and filtering service for projects ✅
+- `src/hooks/useSearch.ts` - React hook for project search and filtering ✅
+- `src/services/searchService.test.ts` - Unit tests for searchService ✅
+- `src/hooks/useSearch.test.ts` - Unit tests for useSearch hook ✅
+- `src/utils/projectHelpers.ts` - Utility functions for project data transformation ✅
+- `src/utils/projectHelpers.test.ts` - Unit tests for projectHelpers ✅
+- `src/components/Project/ProjectDashboard.tsx` - Project dashboard with grid layout and search functionality ✅
+- `src/components/Project/ProjectDashboard.test.tsx` - Unit tests for ProjectDashboard component ✅
+- `src/components/Project/ProjectCard.tsx` - Project card component with thumbnail, metadata, and quick actions ✅
+- `src/components/Project/ProjectCard.test.tsx` - Unit tests for ProjectCard component ✅
+- `src/components/Project/CreateProjectModal.tsx` - Create project modal with form validation and thumbnail preview ✅
+- `src/components/Project/CreateProjectModal.test.tsx` - Unit tests for CreateProjectModal component ✅
+- `src/components/Project/ProjectSettingsModal.tsx` - Project settings modal for editing project details ✅
+- `src/components/Project/ProjectSettingsModal.test.tsx` - Unit tests for ProjectSettingsModal component ✅
+- `src/components/Project/EmptyStates.tsx` - Empty state components for various scenarios ✅
+- `src/components/Project/EmptyStates.test.tsx` - Unit tests for EmptyStates component ✅
+- `src/hooks/useProjects.test.ts` - Unit tests for useProjects
+- `src/hooks/useProjectMembers.ts` - Custom hook for team member management ✅
+- `src/hooks/useProjectMembers.test.ts` - Unit tests for useProjectMembers ✅
+- `src/components/Project/TeamManagement.tsx` - Team management component with member list and role management ✅
+- `src/components/Project/TeamManagement.test.tsx` - Unit tests for TeamManagement component ✅
+- `src/services/invitationService.ts` - Project invitation service with email notifications ✅
+- `src/services/invitationService.test.ts` - Unit tests for invitation service ✅
+- `src/hooks/useInvitations.ts` - React hook for invitation management ✅
+- `src/hooks/useInvitations.test.ts` - Unit tests for useInvitations hook ✅
+- `src/services/emailService.ts` - Email notification service with templates ✅
+- `src/hooks/usePermissions.ts` - Comprehensive permission checking hook ✅
+- `src/hooks/usePermissions.test.ts` - Unit tests for usePermissions hook ✅
+- `src/contexts/PermissionContext.tsx` - Permission context provider and components ✅
+- `src/contexts/PermissionContext.test.tsx` - Unit tests for PermissionContext ✅
+- `src/components/Permission/PermissionComponents.tsx` - Permission-aware UI components ✅
+- `src/components/Permission/PermissionRoute.tsx` - Permission-based route protection ✅
+- `src/services/presenceService.ts` - Real-time presence and activity tracking service ✅
+- `src/services/presenceService.test.ts` - Unit tests for presence service ✅
+- `src/hooks/usePresence.ts` - React hook for presence management ✅
+- `src/hooks/usePresence.test.ts` - Unit tests for usePresence hook ✅
+- `src/components/Presence/PresenceIndicator.tsx` - Presence indicator components ✅
+- `src/contexts/PresenceContext.tsx` - Presence context provider and components ✅
+- `src/services/projectTransferService.ts` - Project ownership transfer service with validation and notifications ✅
+- `src/hooks/useProjectTransfer.ts` - React hook for project transfer management ✅
+- `src/components/Project/ProjectTransferModal.tsx` - Transfer request modal with create/accept/decline functionality ✅
+- `src/services/projectTransferService.test.ts` - Unit tests for project transfer service ✅
+- `src/hooks/useProjectTransfer.test.ts` - Unit tests for useProjectTransfer hook ✅
+- `src/contexts/ProjectCanvasContext.tsx` - Updated CanvasContext for multi-project system with backward compatibility ✅
+- `src/hooks/useProjectCanvasSync.ts` - Project-aware canvas synchronization hook ✅
+- `src/services/projectCanvas.ts` - Firebase operations for project-based canvases and shapes ✅
+- `src/services/projectCanvas.test.ts` - Unit tests for project canvas service ✅
+- `src/hooks/useProjectCanvasSync.test.ts` - Unit tests for useProjectCanvasSync hook ✅
+- `src/components/Project/CanvasManagement.tsx` - Comprehensive canvas management interface with create, rename, delete, duplicate functionality ✅
+- `src/components/Project/CanvasSwitcher.tsx` - Canvas switching component with dropdown, tabs, and compact variants ✅
+- `src/components/Project/CanvasToolbar.tsx` - Canvas toolbar with quick access to management functions ✅
+- `src/components/Project/CanvasManagement.test.tsx` - Unit tests for CanvasManagement component ✅
+- `src/components/Project/CanvasSwitcher.test.tsx` - Unit tests for CanvasSwitcher component ✅
+- `src/components/Project/CanvasToolbar.test.tsx` - Unit tests for CanvasToolbar component ✅
+- `src/pages/ProjectCanvasPage.tsx` - Updated CanvasPage for multi-project system with routing and context integration ✅
+- `src/pages/ProjectDashboardPage.tsx` - Main dashboard for project management with overview and quick access ✅
+- `src/pages/ProjectCanvasPage.test.tsx` - Unit tests for ProjectCanvasPage ✅
+- `src/pages/ProjectDashboardPage.test.tsx` - Unit tests for ProjectDashboardPage ✅
+- `src/App.tsx` - Updated routing for new project routes with backward compatibility ✅
+- `src/services/canvasThumbnailService.ts` - Enhanced canvas thumbnail service with real-time generation and caching ✅
+- `src/hooks/useCanvasThumbnails.ts` - React hook for canvas thumbnail management with batch operations ✅
+- `src/components/Thumbnail/ThumbnailPreview.tsx` - Thumbnail preview component with loading states and management options ✅
+- `src/services/canvasThumbnailService.test.ts` - Unit tests for canvas thumbnail service ✅
+- `src/hooks/useCanvasThumbnails.test.ts` - Unit tests for useCanvasThumbnails hook ✅
+- `src/components/Thumbnail/ThumbnailPreview.test.tsx` - Unit tests for ThumbnailPreview component ✅
+- `src/components/Navigation/ProjectBreadcrumb.tsx` - Enhanced project breadcrumb navigation with recent items and quick actions ✅
+- `src/contexts/NavigationContext.tsx` - Navigation context for global navigation state and actions ✅
+- `src/components/Navigation/NavigationBar.tsx` - Enhanced navigation bar with breadcrumb integration ✅
+- `src/components/Navigation/ProjectBreadcrumb.test.tsx` - Unit tests for ProjectBreadcrumb component ✅
+- `src/components/Navigation/NavigationBar.test.tsx` - Unit tests for NavigationBar component ✅
+- `src/contexts/NavigationContext.test.tsx` - Unit tests for NavigationContext ✅
+- `src/components/Routing/RouteGuard.tsx` - Route guard component for permission-based route protection ✅
+- `src/config/routes.ts` - Route configuration with metadata and helper functions ✅
+- `src/pages/Home.tsx` - Home page component with authentication state and feature showcase ✅
+- `src/components/Routing/AppRouter.tsx` - Enhanced app router with route guards and metadata ✅
+- `src/components/Routing/RouteGuard.test.tsx` - Unit tests for RouteGuard component ✅
+- `src/config/routes.test.ts` - Unit tests for route configuration ✅
+- `src/components/ErrorBoundary/ErrorBoundary.tsx` - Error boundary component for catching and handling React errors ✅
+- `src/contexts/ThemeContext.tsx` - Theme context for managing dark/light mode and theme preferences ✅
+- `src/components/Performance/PerformanceMonitor.tsx` - Performance monitoring component for tracking metrics ✅
+- `src/contexts/AnalyticsContext.tsx` - Analytics context for tracking user interactions and events ✅
+- `src/contexts/AccessibilityContext.tsx` - Accessibility context for managing accessibility features ✅
+- `src/contexts/ServiceWorkerContext.tsx` - Service worker context for managing PWA features ✅
+- `src/components/ErrorBoundary/ErrorBoundary.test.tsx` - Unit tests for ErrorBoundary component ✅
+- `src/contexts/ThemeContext.test.tsx` - Unit tests for ThemeContext ✅
+- `src/components/Layout/Navbar.tsx` - Enhanced navbar component with project breadcrumbs and navigation ✅
+- `src/components/Layout/Navbar.test.tsx` - Unit tests for enhanced Navbar component ✅
+- `src/pages/Home.tsx` - Enhanced home page with automatic redirection for logged-in users ✅
+- `src/pages/Home.test.tsx` - Unit tests for enhanced Home component ✅
+- `src/components/Routing/RouteGuard.tsx` - Enhanced route guard component with granular permission-based access control ✅
+- `src/components/Routing/RouteGuard.test.tsx` - Unit tests for enhanced RouteGuard component ✅
+- `src/services/deepLinkService.ts` - Deep linking service for URL parsing, validation, and processing ✅
+- `src/services/deepLinkService.test.ts` - Unit tests for deep link service ✅
+- `src/hooks/useDeepLink.ts` - React hook for deep linking functionality ✅
+- `src/hooks/useDeepLink.test.ts` - Unit tests for useDeepLink hook ✅
+- `src/contexts/DeepLinkContext.tsx` - Context for global deep linking state management ✅
+- `src/contexts/DeepLinkContext.test.tsx` - Unit tests for DeepLinkContext ✅
+- `src/components/Routing/DeepLinkHandler.tsx` - Component for handling deep links in routes ✅
+- `src/components/Routing/DeepLinkHandler.test.tsx` - Unit tests for DeepLinkHandler component ✅
+- `src/services/projectCanvas.ts` - Project-aware canvas service with Firebase path isolation ✅
+- `src/services/projectCanvas.test.ts` - Unit tests for project canvas service ✅
+- `src/hooks/useProjectCanvasSync.ts` - Project-aware canvas synchronization hook ✅
+- `src/hooks/useProjectCanvasSync.test.ts` - Unit tests for useProjectCanvasSync hook ✅
+- `src/contexts/ProjectCanvasContext.tsx` - Project-aware canvas context for multi-project system ✅
+- `src/components/Canvas/CanvasInitializer.tsx` - Component for initializing project canvas context ✅
+- `firestore.rules` - Updated security rules for project-based access
+- `src/types/project.ts` - TypeScript interfaces for project data structures ✅
+
+### Notes
+
+- Unit tests should typically be placed alongside the code files they are testing (e.g., `MyComponent.tsx` and `MyComponent.test.tsx` in the same directory).
+- Use `npx jest [optional/path/to/test/file]` to run tests. Running without a path executes all tests found by the Jest configuration.
+
+## Tasks
+
+- [x] 1.0 Setup Project Data Architecture and Firebase Structure
+  - [x] 1.1 Create TypeScript interfaces for Project, ProjectMember, and Canvas data structures
+  - [x] 1.2 Design Firebase collection structure for projects/{projectId}/metadata, members, and canvases
+  - [x] 1.3 Update Firebase security rules to support project-based access control
+  - [x] 1.4 Create migration strategy for existing single-canvas users
+  - [x] 1.5 Set up Firebase indexes for project queries (search, recent, user projects)
+
+- [x] 2.0 Create Project Management Context and Services
+  - [x] 2.1 Create ProjectContext with state management for current project, project list, and loading states
+  - [x] 2.2 Implement projectService with CRUD operations (create, read, update, delete, archive)
+  - [x] 2.3 Create useProjects hook for project data fetching and caching
+  - [x] 2.4 Implement project thumbnail generation from canvas content
+  - [x] 2.5 Add project search and filtering functionality
+  - [x] 2.6 Create projectHelpers utility functions for data transformation
+
+- [x] 3.0 Build Project Dashboard and Navigation Components
+  - [x] 3.1 Create ProjectDashboard component with grid layout and search functionality
+  - [x] 3.2 Build ProjectCard component with thumbnail, metadata, and quick actions
+  - [x] 3.3 Implement CreateProjectModal with form validation and thumbnail preview
+  - [x] 3.4 Create ProjectSettings modal for editing project details
+  - [x] 3.5 Add empty states for new users and no projects found
+  - [x] 3.6 Implement project card hover effects and loading states
+
+- [ ] 4.0 Implement Team Collaboration and Permission System
+  - [x] 4.1 Create useProjectMembers hook for team member management
+  - [x] 4.2 Build TeamManagement component with member list and role management
+  - [x] 4.3 Implement project invitation system with email notifications
+  - [x] 4.4 Add permission checking throughout the application (viewer/editor/admin)
+  - [x] 4.5 Create member presence indicators and online status
+  - [x] 4.6 Implement project transfer functionality for ownership changes
+
+- [ ] 5.0 Integrate Multi-Project System with Existing Canvas
+  - [x] 5.1 Update CanvasContext to work with project-based data structure
+  - [x] 5.2 Modify canvas synchronization to use project-specific Firebase paths
+  - [x] 5.3 Add canvas management within projects (create, rename, delete, duplicate)
+  - [x] 5.4 Update CanvasPage to handle project and canvas routing parameters
+  - [x] 5.5 Implement canvas thumbnail generation and caching
+  - [x] 5.6 Add project breadcrumb navigation to canvas interface
+
+- [ ] 6.0 Update Routing and Navigation System
+  - [x] 6.1 Add new routes: /projects, /projects/:id, /projects/:id/canvas/:canvasId
+  - [x] 6.2 Update App.tsx routing configuration with protected routes
+  - [x] 6.3 Modify Navbar component to show project breadcrumbs and navigation
+  - [x] 6.4 Update Home component to redirect to projects dashboard for logged-in users
+  - [x] 6.5 Implement route guards for project access based on user permissions
+  - [x] 6.6 Add deep linking support for direct project/canvas access
