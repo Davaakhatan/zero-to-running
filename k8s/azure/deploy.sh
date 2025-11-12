@@ -27,36 +27,46 @@ fi
 echo "✅ Connected to cluster: $(kubectl config current-context)"
 echo ""
 
-# Apply manifests in order
-echo "📝 Creating namespace..."
-kubectl apply -f "$SCRIPT_DIR/namespace.yaml"
+# Apply common manifests
+echo "📝 Applying common manifests..."
+kubectl apply -f "$COMMON_DIR/namespace.yaml"
+kubectl apply -f "$COMMON_DIR/configmap.yaml"
+kubectl apply -f "$COMMON_DIR/secrets.yaml"
 
-echo "📝 Creating ConfigMap..."
-kubectl apply -f "$SCRIPT_DIR/configmap.yaml"
+# Apply Azure-specific storage class
+echo "📝 Applying Azure storage class..."
+kubectl apply -f "$SCRIPT_DIR/storage-class.yaml"
 
-echo "📝 Creating Secrets..."
-kubectl apply -f "$SCRIPT_DIR/secrets.yaml"
-
-echo "📝 Deploying PostgreSQL..."
-kubectl apply -f "$SCRIPT_DIR/postgres-statefulset.yaml"
+# Update postgres statefulset to use Azure storage class
+echo "📝 Updating PostgreSQL to use Azure storage class..."
+kubectl apply -f "$COMMON_DIR/postgres-statefulset.yaml" || true
+# Note: StatefulSet volumeClaimTemplates cannot be patched after creation
+# The storage class should be set in the postgres-statefulset.yaml file
 
 echo "📝 Deploying Redis..."
-kubectl apply -f "$SCRIPT_DIR/redis-deployment.yaml"
+kubectl apply -f "$COMMON_DIR/redis-deployment.yaml"
 
 echo "📝 Deploying Backend API..."
-kubectl apply -f "$SCRIPT_DIR/backend-deployment.yaml"
+kubectl apply -f "$COMMON_DIR/backend-deployment.yaml"
 
 echo "📝 Deploying Application Frontend..."
-kubectl apply -f "$SCRIPT_DIR/app-frontend-deployment.yaml"
+kubectl apply -f "$COMMON_DIR/app-frontend-deployment.yaml"
 
 echo "📝 Deploying Dashboard Frontend..."
-kubectl apply -f "$SCRIPT_DIR/dashboard-frontend-deployment.yaml"
+kubectl apply -f "$COMMON_DIR/dashboard-frontend-deployment.yaml"
+
+echo "📝 Deploying CollabCanva..."
+kubectl apply -f "$COMMON_DIR/collabcanva-deployment.yaml"
+
+echo "📝 Applying Azure Ingress..."
+kubectl apply -f "$SCRIPT_DIR/ingress.yaml"
 
 echo ""
 echo "⏳ Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=300s deployment/backend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/app-frontend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/dashboard-frontend -n $NAMESPACE || true
+kubectl wait --for=condition=available --timeout=300s deployment/collabcanva -n $NAMESPACE || true
 
 echo ""
 echo "✅ Deployment complete!"
@@ -71,4 +81,8 @@ echo "💡 To access services, use port-forwarding:"
 echo "   kubectl port-forward service/backend-service 3003:3003 -n $NAMESPACE"
 echo "   kubectl port-forward service/app-frontend-service 3000:3000 -n $NAMESPACE"
 echo "   kubectl port-forward service/dashboard-frontend-service 3001:3000 -n $NAMESPACE"
+echo "   kubectl port-forward service/collabcanva-service 3002:3002 -n $NAMESPACE"
+echo ""
+echo "   Or use the ingress URL:"
+echo "   kubectl get ingress dev-env-ingress -n $NAMESPACE"
 

@@ -41,8 +41,9 @@ kubectl apply -f "$SCRIPT_DIR/storage-class.yaml"
 
 # Update postgres statefulset to use GCP storage class
 echo "📝 Updating PostgreSQL to use GCP storage class..."
-kubectl apply -f "$COMMON_DIR/postgres-statefulset.yaml"
-kubectl patch statefulset postgres -n $NAMESPACE -p '{"spec":{"volumeClaimTemplates":[{"metadata":{"name":"postgres-data"},"spec":{"storageClassName":"standard","accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"10Gi"}}}]}]}}' || true
+kubectl apply -f "$COMMON_DIR/postgres-statefulset.yaml" || true
+# Note: StatefulSet volumeClaimTemplates cannot be patched after creation
+# The storage class should be set in the postgres-statefulset.yaml file
 
 echo "📝 Deploying Redis..."
 kubectl apply -f "$COMMON_DIR/redis-deployment.yaml"
@@ -56,6 +57,9 @@ kubectl apply -f "$COMMON_DIR/app-frontend-deployment.yaml"
 echo "📝 Deploying Dashboard Frontend..."
 kubectl apply -f "$COMMON_DIR/dashboard-frontend-deployment.yaml"
 
+echo "📝 Deploying CollabCanva..."
+kubectl apply -f "$COMMON_DIR/collabcanva-deployment.yaml"
+
 echo "📝 Applying GCP Ingress..."
 kubectl apply -f "$SCRIPT_DIR/ingress.yaml"
 
@@ -64,6 +68,7 @@ echo "⏳ Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=300s deployment/backend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/app-frontend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/dashboard-frontend -n $NAMESPACE || true
+kubectl wait --for=condition=available --timeout=300s deployment/collabcanva -n $NAMESPACE || true
 
 echo ""
 echo "✅ Deployment complete!"
@@ -81,6 +86,7 @@ echo "💡 To access services:"
 echo "   kubectl port-forward service/backend-service 3003:3003 -n $NAMESPACE"
 echo "   kubectl port-forward service/app-frontend-service 3000:3000 -n $NAMESPACE"
 echo "   kubectl port-forward service/dashboard-frontend-service 3001:3000 -n $NAMESPACE"
+echo "   kubectl port-forward service/collabcanva-service 3002:3002 -n $NAMESPACE"
 echo ""
 echo "   Or use the external IP from ingress:"
 echo "   kubectl get ingress dev-env-ingress -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}'"
