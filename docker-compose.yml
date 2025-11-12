@@ -126,7 +126,7 @@ services:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3003
       CI: "true"
-    command: sh -c "cd /app && if [ ! -d node_modules/.bin/next ] || [ ! -f node_modules/react/cjs/react.development.js ]; then pnpm install --shamefully-hoist --no-frozen-lockfile; fi && pnpm dev"
+    command: sh -c "cd /app && if [ ! -d node_modules/.bin/next ] || [ ! -f node_modules/react/cjs/react.development.js ]; then pnpm install --shamefully-hoist --no-frozen-lockfile; fi && pnpm dev -p 3001"
     ports:
       - "3001:3001"
     depends_on:
