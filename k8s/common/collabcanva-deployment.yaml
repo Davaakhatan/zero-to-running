@@ -42,55 +42,15 @@ spec:
         env:
         - name: NODE_ENV
           value: "production"
-        # Firebase environment variables (set these in secrets or configmap)
-        - name: VITE_FIREBASE_API_KEY
+        # Backend API URL - use Kubernetes service name for internal communication
+        # For browser requests, this will be overridden by VITE_API_URL at build time
+        - name: VITE_API_URL
           valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_API_KEY
+            configMapKeyRef:
+              name: dev-env-config
+              key: BACKEND_API_URL
               optional: true
-        - name: VITE_FIREBASE_AUTH_DOMAIN
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_AUTH_DOMAIN
-              optional: true
-        - name: VITE_FIREBASE_DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_DATABASE_URL
-              optional: true
-        - name: VITE_FIREBASE_PROJECT_ID
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_PROJECT_ID
-              optional: true
-        - name: VITE_FIREBASE_STORAGE_BUCKET
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_STORAGE_BUCKET
-              optional: true
-        - name: VITE_FIREBASE_MESSAGING_SENDER_ID
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_MESSAGING_SENDER_ID
-              optional: true
-        - name: VITE_FIREBASE_APP_ID
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_APP_ID
-              optional: true
-        - name: VITE_FIREBASE_MEASUREMENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: dev-env-secrets
-              key: VITE_FIREBASE_MEASUREMENT_ID
-              optional: true
+        # Optional: OpenAI API key if needed
         - name: VITE_OPENAI_API_KEY
           valueFrom:
             secretKeyRef:

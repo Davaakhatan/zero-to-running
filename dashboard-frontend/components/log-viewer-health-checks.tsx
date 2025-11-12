@@ -271,8 +271,11 @@ export function LogViewerHealthChecks() {
       log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.service.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesLevel = !logLevelFilter || log.level === logLevelFilter
-    // Service filter is already applied in fetchData, but keep it here for safety
-    const matchesService = !selectedService || log.service === selectedService
+    // Service filter - use case-insensitive matching and handle variations
+    const matchesService = !selectedService || 
+      log.service.toLowerCase() === selectedService.toLowerCase() ||
+      log.service.toLowerCase().includes(selectedService.toLowerCase()) ||
+      selectedService.toLowerCase().includes(log.service.toLowerCase())
 
     return matchesSearch && matchesLevel && matchesService
   })

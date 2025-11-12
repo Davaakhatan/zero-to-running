@@ -41,8 +41,9 @@ kubectl apply -f "$SCRIPT_DIR/storage-class.yaml"
 
 # Update postgres statefulset to use AWS storage class
 echo "📝 Updating PostgreSQL to use AWS storage class..."
-kubectl apply -f "$COMMON_DIR/postgres-statefulset.yaml"
-kubectl patch statefulset postgres -n $NAMESPACE -p '{"spec":{"volumeClaimTemplates":[{"metadata":{"name":"postgres-data"},"spec":{"storageClassName":"gp3","accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"10Gi"}}}]}]}}' || true
+kubectl apply -f "$COMMON_DIR/postgres-statefulset.yaml" || true
+# Note: StatefulSet volumeClaimTemplates cannot be patched after creation
+# The storage class should be set in the postgres-statefulset.yaml file
 
 echo "📝 Deploying Redis..."
 kubectl apply -f "$COMMON_DIR/redis-deployment.yaml"

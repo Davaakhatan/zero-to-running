@@ -13,6 +13,10 @@ data:
   
   # Frontend Configuration
   NEXT_PUBLIC_API_URL: "http://backend-service:3003"
+  # Backend API URL for CollabCanva (Vite app)
+  # For browser requests via ingress, use the ingress URL
+  # For internal requests, use the service name
+  BACKEND_API_URL: "http://backend-service:3003"
   
   # Database Configuration
   POSTGRES_DB: "devenv"

@@ -367,7 +367,9 @@ export async function getLogs(filters: LogFilters): Promise<LogEntry[]> {
       if (filters.service) {
         // Map service name to pod name pattern
         const serviceName = filters.service.toLowerCase();
-        const podNamePattern = SERVICE_TO_CONTAINER[serviceName] || serviceName;
+        // Try multiple patterns: direct service name, container name, and pod pattern
+        const containerName = SERVICE_TO_CONTAINER[serviceName];
+        const podPattern = containerName ? containerName.replace('dev-env-', '') : serviceName;
         
         // Get all pods matching the pattern
         const namespace = getKubernetesNamespace();
@@ -377,9 +379,20 @@ export async function getLogs(filters: LogFilters): Promise<LogEntry[]> {
         
         const pods = JSON.parse(stdout || '{}');
         if (pods.items) {
-          const matchingPods = pods.items.filter((pod: any) => 
-            pod.metadata.name.includes(podNamePattern.replace('dev-env-', ''))
-          );
+          // Match pods by name pattern - pods typically start with service name
+          const matchingPods = pods.items.filter((pod: any) => {
+            const podName = pod.metadata.name.toLowerCase();
+            // Match if pod name starts with the pattern or contains it
+            return podName.startsWith(podPattern) || 
+                   podName.includes(podPattern) ||
+                   // Also check labels for app name
+                   pod.metadata.labels?.app === serviceName ||
+                   pod.metadata.labels?.app === podPattern;
+          });
+          
+          if (matchingPods.length === 0) {
+            console.warn(`No pods found matching service: ${serviceName} (pattern: ${podPattern})`);
+          }
           
           const logPromises = matchingPods.map((pod: any) => 
             getKubernetesPodLogs(pod.metadata.name, maxLogsPerContainer)

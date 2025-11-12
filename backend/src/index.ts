@@ -35,7 +35,7 @@ await fastify.register(securityMiddleware);
 // Register CORS with production best practices
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://127.0.0.1:3002'];
 
 await fastify.register(cors, {
   origin: (origin, callback) => {
