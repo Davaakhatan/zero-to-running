@@ -21,7 +21,7 @@
 
 ---
 
-### The Solution (2 minutes)
+### The Solution (3 minutes)
 
 > **"Watch this. A new developer clones the repo..."**
 
@@ -31,9 +31,52 @@ cd zero-to-running
 make dev
 ```
 
+*[Start `make dev` - let it run in background/terminal]*
+
+> **"While Docker is starting locally, let me show you something else. The same applications are also running on AWS Kubernetes, and they're publicly accessible right now."**
+
+*[Open new terminal - show AWS environment]*
+
+```bash
+# Show running pods on AWS
+kubectl get pods -n dev-env
+
+# Get public URLs
+cd k8s/aws && ./get-urls.sh
+```
+
+*[Open browser, show public URLs working - Dashboard, CollabCanva, App Frontend]*
+
+> **"These are live, publicly accessible applications running on AWS. Anyone can access them from anywhere. And I can also access them locally via port-forwarding while Docker is starting."**
+
+*[Show port-forwarding commands in separate terminals]*
+
+```bash
+# Terminal 1: Backend API
+kubectl port-forward service/backend-service 3003:3003 -n dev-env
+
+# Terminal 2: Dashboard
+kubectl port-forward service/dashboard-frontend-service 3001:3001 -n dev-env
+
+# Terminal 3: App Frontend
+kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env
+```
+
+*[Quickly show localhost:3001 working via port-forward]*
+
+> **"But here's the thing—we don't need AWS or port-forwarding for local development. Let me stop these and show you what just finished."**
+
+*[Stop port-forwarding]*
+
+```bash
+pkill -f "kubectl port-forward"
+```
+
+*[Check Docker status - should be ready]*
+
 > **"That's it. One command. In 30 seconds:"**
 
-*[Point to each]*
+*[Point to each service in local Docker]*
 
 > **"PostgreSQL—running. Redis—ready. Backend API—operational. Dashboard—showing everything. Application frontend—ready to code."**
 
@@ -41,7 +84,7 @@ make dev
 
 > **"They can see everything working. Service status, health checks, logs, resources. All in one place. No configuration. No manual setup."**
 
-> **"No AWS setup. No Kubernetes. No port-forwarding. Just one command, and everything works locally."**
+> **"No AWS setup needed. No Kubernetes configuration. No port-forwarding. Just one command, and everything works locally."**
 
 ---
 
@@ -92,10 +135,17 @@ make dev
 
 ### During
 - [ ] Show `git clone`
-- [ ] Show `make dev` (KEY moment - let it run)
+- [ ] Start `make dev` (let it run in background)
+- [ ] **While Docker is starting**: Show AWS environment
+  - [ ] Run `kubectl get pods -n dev-env`
+  - [ ] Run `cd k8s/aws && ./get-urls.sh`
+  - [ ] Open public URLs in browser (show they work)
+  - [ ] Show port-forwarding commands (optional - quick demo)
+- [ ] **Once Docker is ready**: Stop port-forwarding
+  - [ ] Run `pkill -f "kubectl port-forward"`
+- [ ] Show local Docker services working
 - [ ] Open dashboard at `http://localhost:3001`
-- [ ] Show services working
-- [ ] **DO NOT show AWS/Kubernetes**
+- [ ] Show services working locally
 
 ### After
 - [ ] Q&A ready
@@ -110,17 +160,18 @@ make dev
 2. **Show, don't tell** - Let them see `make dev` work
 3. **Use numbers** - "10 hours vs 5 minutes"
 4. **Pause for impact** - Let key points sink in
-5. **Stay focused** - Local only, no AWS/Kubernetes
+5. **Use AWS as transition** - Show AWS while Docker starts, then switch to local
+6. **Keep AWS brief** - Just enough to show it exists, then focus on local
 
 ---
 
 ## 🎤 Quick Q&A
 
 **Q: What about production?**  
-A: Kubernetes support exists, but the core value is local development. One command, everything works.
+A: The same applications you saw on AWS are also available for production deployment. But the core value is local development—one command, everything works locally.
 
-**Q: Do I need AWS?**  
-A: No! Everything runs locally with Docker. No cloud accounts needed.
+**Q: Do I need AWS for local development?**  
+A: No! Everything runs locally with Docker. AWS is optional for production deployment. For local development, you just need Docker Desktop.
 
 **Q: Can I customize it?**  
 A: Yes. Sensible defaults, but everything is configurable.

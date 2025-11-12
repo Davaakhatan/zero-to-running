@@ -28,7 +28,7 @@ Show these commands while `make dev` is running to demonstrate Kubernetes altern
 kubectl port-forward service/backend-service 3003:3003 -n dev-env
 
 # Dashboard Frontend (Port 3001)
-kubectl port-forward service/dashboard-frontend-service 3001:3000 -n dev-env
+kubectl port-forward service/dashboard-frontend-service 3001:3001 -n dev-env
 
 # App Frontend (Port 3000)
 kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env
@@ -111,52 +111,80 @@ kubectl get all -n dev-env
 
 ---
 
-## 🎬 Demo Flow
+## 🎬 Demo Flow (Updated for Demo Script)
 
-### Step 1: While Docker is Starting (Show Kubernetes Alternative)
+### Step 1: Start Docker Setup
 
 ```bash
-# Terminal 1: Show pods
-kubectl get pods -n dev-env -w
-
-# Terminal 2: Port-forward backend
-kubectl port-forward service/backend-service 3003:3003 -n dev-env
-
-# Terminal 3: Port-forward dashboard
-kubectl port-forward service/dashboard-frontend-service 3001:3000 -n dev-env
+# Terminal 1: Start local Docker
+cd zero-to-running
+make dev
 ```
 
-**Say**: *"While Docker is starting locally, I can also show you the same services running on AWS Kubernetes. Here are the pods, and I can access them via port-forwarding."*
+*[Let this run in background - it takes 30-60 seconds]*
 
-### Step 2: After Docker Completes
+### Step 2: While Docker is Starting (Show AWS Environment)
+
+**Say**: *"While Docker is starting locally, let me show you the same applications running on AWS Kubernetes. They're publicly accessible right now."*
+
+```bash
+# Terminal 2: Show running pods
+kubectl get pods -n dev-env
+
+# Terminal 2: Get public URLs
+cd k8s/aws && ./get-urls.sh
+```
+
+*[Open browser, show public URLs working]*
+
+**Say**: *"These are live, publicly accessible applications. Anyone can access them from anywhere. I can also access them locally via port-forwarding while Docker is starting."*
+
+```bash
+# Terminal 3: Port-forward backend (optional - quick demo)
+kubectl port-forward service/backend-service 3003:3003 -n dev-env &
+
+# Terminal 4: Port-forward dashboard (optional - quick demo)
+kubectl port-forward service/dashboard-frontend-service 3001:3001 -n dev-env &
+
+# Terminal 5: Port-forward app frontend (optional - quick demo)
+kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env &
+```
+
+*[Quickly show localhost:3001 working via port-forward - optional]*
+
+### Step 3: Docker is Ready - Stop Port-Forwarding
+
+**Say**: *"But here's the thing—we don't need AWS or port-forwarding for local development. Let me stop these and show you what just finished."*
 
 ```bash
 # Stop all port-forwarding
 pkill -f "kubectl port-forward"
 ```
 
-**Say**: *"Now that local Docker is ready, let me stop the port-forwarding and show you the AWS environment."*
+### Step 4: Show Local Docker Environment
 
-### Step 3: Show AWS Environment
+**Say**: *"That's it. One command. In 30 seconds, everything is running locally."*
+
+*[Check Docker status - show services running]*
 
 ```bash
-# Show services with public URLs
-kubectl get svc -n dev-env
-
-# Get public URLs
-cd k8s/aws && ./get-urls.sh
+# Check Docker services
+docker-compose ps
 ```
 
-**Say**: *"On AWS, these services are publicly accessible via LoadBalancers. Here are the public URLs that anyone can access."*
+*[Open dashboard at http://localhost:3001]*
+
+**Say**: *"They can see everything working. Service status, health checks, logs, resources. All in one place. No configuration. No manual setup. No AWS needed for local development."*
 
 ---
 
 ## 💡 Quick Tips
 
-- **Keep it brief**: Don't spend too much time on Kubernetes during main demo
+- **Timing is key**: Show AWS while Docker is starting (30-60 seconds)
+- **Keep AWS brief**: Just enough to show it exists, then switch to local
 - **Focus on local**: The main story is `make dev` working locally
-- **AWS is optional**: Only show if asked or if you have extra time
 - **Use helper script**: `./get-urls.sh` is faster than manual commands
+- **Port-forwarding is optional**: Only show if you have time, otherwise skip to stopping it
 
 ---
 
