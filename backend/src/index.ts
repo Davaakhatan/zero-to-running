@@ -47,6 +47,21 @@ await fastify.register(cors, {
       return callback(null, true);
     }
     
+    // Allow AWS LoadBalancer origins (for AWS EKS deployments)
+    if (origin.includes('.elb.amazonaws.com')) {
+      return callback(null, true);
+    }
+    
+    // Allow Azure LoadBalancer origins (for Azure AKS deployments)
+    if (origin.includes('.cloudapp.azure.com') || origin.includes('.azurecontainer.io')) {
+      return callback(null, true);
+    }
+    
+    // Allow GCP LoadBalancer origins (for GCP GKE deployments)
+    if (origin.includes('.googleusercontent.com') || origin.includes('.run.app')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
