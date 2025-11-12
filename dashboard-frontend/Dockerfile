@@ -42,15 +42,19 @@ ENV NODE_ENV=production
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy built application
-COPY --from=base /app/.next ./.next
+# For standalone output, copy the standalone server files
+COPY --from=base /app/.next/standalone ./
+COPY --from=base /app/.next/static ./.next/static
 COPY --from=base /app/public ./public
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/next.config.mjs ./next.config.mjs
 
 # Expose port (dashboard runs on 3000 inside container, mapped to 3001 on host)
 EXPOSE 3000
 
-# Start the application
-CMD ["pnpm", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+
+# Start the application using standalone server (works with output: standalone)
+# This works for both Docker and Kubernetes
+CMD ["node", "server.js"]
 

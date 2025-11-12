@@ -39,21 +39,23 @@ export function LogViewerHealthChecks() {
     try {
       setError(null)
       
-      // Map service display names to backend service names for filtering
+      // Map service display names to backend service IDs for filtering
+      // Backend expects: 'database', 'redis', 'api-server', 'app-frontend', 'dashboard-frontend', 'collabcanva'
       const serviceNameMap: Record<string, string> = {
-        'Database': 'Database',
-        'Cache Service': 'Cache Service',
-        'API Server': 'API Server',
-        'Application Frontend': 'Application Frontend',
-        'Dashboard Frontend': 'Dashboard Frontend',
+        'Database': 'database',
+        'Cache Service': 'redis',
+        'API Server': 'api-server',
+        'Application Frontend': 'app-frontend',
+        'Dashboard Frontend': 'dashboard-frontend',
+        'CollabCanva': 'collabcanva',
       };
       
       // Fetch logs with service filter if selected
-      // Map service display name to backend service name for filtering
+      // Map service display name to backend service ID for filtering
       let backendServiceName: string | undefined = undefined;
       if (selectedService) {
-        // Direct mapping for exact matches
-        backendServiceName = serviceNameMap[selectedService] || selectedService;
+        // Map display name to backend service ID
+        backendServiceName = serviceNameMap[selectedService] || selectedService.toLowerCase().replace(/\s+/g, '-');
         console.log('[Logs] Filtering by service:', selectedService, '->', backendServiceName);
       } else {
         console.log('[Logs] Showing all services (no filter)');
@@ -134,7 +136,21 @@ export function LogViewerHealthChecks() {
                 `Service ${dashboardFrontendDep?.status || 'unknown'}, response time: ${dashboardFrontendDep?.details?.responseTime || 0}ms`,
       })
 
-      // 5. Backend API health check (ALWAYS add)
+      // 5. CollabCanva health check (ALWAYS add - no conditional)
+      const collabcanvaDep = deps['collabcanva']
+      const collabcanvaStatus = collabcanvaDep?.status === 'healthy' ? 'passed' : 
+                               collabcanvaDep?.status === 'unhealthy' ? 'failed' : 'warning'
+      checks.push({
+        id: 'collabcanva',
+        service: 'CollabCanva',
+        timestamp: new Date(healthData.timestamp),
+        status: collabcanvaStatus,
+        responseTime: collabcanvaDep?.details?.responseTime || 0,
+        details: collabcanvaDep?.details?.error || 
+                `Service ${collabcanvaDep?.status || 'unknown'}, response time: ${collabcanvaDep?.details?.responseTime || 0}ms`,
+      })
+
+      // 6. Backend API health check (ALWAYS add)
       checks.push({
         id: 'api-server',
         service: 'API Server',
@@ -152,16 +168,19 @@ export function LogViewerHealthChecks() {
       console.log('[Health Checks] Dependencies keys:', Object.keys(deps))
       console.log('[Health Checks] app-frontend exists:', 'app-frontend' in deps)
       console.log('[Health Checks] dashboard-frontend exists:', 'dashboard-frontend' in deps)
+      console.log('[Health Checks] collabcanva exists:', 'collabcanva' in deps)
       console.log('[Health Checks] Total checks created:', checks.length)
       console.log('[Health Checks] Services:', checks.map(c => `${c.id}: ${c.service}`))
       console.log('===========================')
       
-      // Ensure we always have exactly 5 services
-      if (checks.length !== 5) {
-        console.error(`[Health Checks] ERROR: Expected 5 services, got ${checks.length}!`)
+      // Ensure we have all 6 services
+      const expectedServices = ['database', 'redis', 'app-frontend', 'dashboard-frontend', 'collabcanva', 'api-server'];
+      
+      if (checks.length !== expectedServices.length) {
+        console.error(`[Health Checks] ERROR: Expected ${expectedServices.length} services, got ${checks.length}!`)
         console.error('[Health Checks] Services found:', checks.map(c => c.service))
         console.error('[Health Checks] Missing services:', 
-          ['database', 'redis', 'app-frontend', 'dashboard-frontend', 'api-server']
+          expectedServices
             .filter(id => !checks.find(c => c.id === id))
             .map(id => id)
         )

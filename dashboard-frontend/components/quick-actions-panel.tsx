@@ -30,6 +30,7 @@ export function QuickActionsPanel() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
+        setIsLoading(true)
         const apiServices = await getServices()
         // Map API service status to our local status
         const mappedServices: Service[] = apiServices.map(apiService => {

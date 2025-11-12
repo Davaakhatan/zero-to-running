@@ -56,6 +56,9 @@ kubectl apply -f "$COMMON_DIR/app-frontend-deployment.yaml"
 echo "📝 Deploying Dashboard Frontend..."
 kubectl apply -f "$COMMON_DIR/dashboard-frontend-deployment.yaml"
 
+echo "📝 Deploying CollabCanva..."
+kubectl apply -f "$COMMON_DIR/collabcanva-deployment.yaml"
+
 echo "📝 Applying AWS Ingress..."
 kubectl apply -f "$SCRIPT_DIR/ingress.yaml"
 
@@ -64,6 +67,7 @@ echo "⏳ Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=300s deployment/backend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/app-frontend -n $NAMESPACE || true
 kubectl wait --for=condition=available --timeout=300s deployment/dashboard-frontend -n $NAMESPACE || true
+kubectl wait --for=condition=available --timeout=300s deployment/collabcanva -n $NAMESPACE || true
 
 echo ""
 echo "✅ Deployment complete!"
@@ -81,6 +85,7 @@ echo "💡 To access services:"
 echo "   kubectl port-forward service/backend-service 3003:3003 -n $NAMESPACE"
 echo "   kubectl port-forward service/app-frontend-service 3000:3000 -n $NAMESPACE"
 echo "   kubectl port-forward service/dashboard-frontend-service 3001:3000 -n $NAMESPACE"
+echo "   kubectl port-forward service/collabcanva-service 3002:3002 -n $NAMESPACE"
 echo ""
 echo "   Or use the ALB URL from ingress:"
 echo "   kubectl get ingress dev-env-ingress -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, Plus, Settings, Trash2, Loader2, AlertCircle } from "lucide-react"
-import { getConfig, type Config } from "@/lib/api-client"
+import { getConfig, getServices, type Config } from "@/lib/api-client"
 
 interface Environment {
   id: string
@@ -23,24 +23,34 @@ export function EnvSetupDashboard() {
     const fetchEnvironments = async () => {
       try {
         setError(null)
-        const config = await getConfig()
+        const [config, services] = await Promise.all([
+          getConfig(),
+          getServices(),
+        ])
+        
+        // Build environment variables dynamically from all services
+        const variables: Record<string, string> = {
+          DATABASE_URL: `postgres://${config.services.database.user}@${config.services.database.host}:${config.services.database.port}/${config.services.database.name}`,
+          REDIS_URL: `redis://${config.services.redis.host}:${config.services.redis.port}`,
+          BACKEND_URL: `http://${config.services.backend.host}:${config.services.backend.port}`,
+        }
+        
+        // Add all frontend services dynamically
+        services.forEach(service => {
+          if (service.id === 'app-frontend' || service.id === 'dashboard-frontend' || service.id === 'collabcanva') {
+            const serviceName = service.id.toUpperCase().replace(/-/g, '_') + '_URL'
+            variables[serviceName] = service.endpoint.replace(/^https?:\/\//, 'http://')
+          }
+        })
         
         // Build environments from config
-        // In production, this would come from a dedicated /api/environments endpoint
         const envs: Environment[] = [
           {
             id: "development",
-      name: "Development",
-      type: "development",
-      status: "active",
-      variables: {
-              DATABASE_URL: `postgres://${config.services.database.user}@${config.services.database.host}:${config.services.database.port}/${config.services.database.name}`,
-              REDIS_URL: `redis://${config.services.redis.host}:${config.services.redis.port}`,
-              BACKEND_URL: `http://${config.services.backend.host}:${config.services.backend.port}`,
-              APP_FRONTEND_URL: config.services['app-frontend'] 
-                ? `http://${config.services['app-frontend'].host}:${config.services['app-frontend'].port}`
-                : 'http://localhost:3000',
-            },
+            name: "Development",
+            type: "development",
+            status: "active",
+            variables,
           },
         ]
         

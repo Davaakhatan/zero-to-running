@@ -117,12 +117,15 @@ services:
     build:
       context: ./dashboard-frontend
       dockerfile: Dockerfile
+      target: base  # Use base stage for development (has all dependencies)
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3003
     container_name: dev-env-dashboard-frontend
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3003
+      CI: "true"
+    command: sh -c "cd /app && if [ ! -d node_modules/.bin/next ] || [ ! -f node_modules/react/cjs/react.development.js ]; then pnpm install --shamefully-hoist --no-frozen-lockfile; fi && pnpm dev"
     ports:
       - "3001:3000"
     depends_on:
@@ -140,6 +143,50 @@ services:
     networks:
       - dev-env-network
     restart: unless-stopped
+
+  # CollabCanva App (Port 3002) - Collaborative Canvas Application
+  collabcanva:
+    build:
+      context: ./collabcanva-app
+      dockerfile: Dockerfile
+      target: runner
+    container_name: dev-env-collabcanva
+    environment:
+      NODE_ENV: development
+      # Backend API URL - use Docker service name for internal communication
+      VITE_API_URL: http://backend:3003
+      # Firebase environment variables (optional - for auth if still using Firebase)
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+      VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
+      VITE_FIREBASE_DATABASE_URL: ${VITE_FIREBASE_DATABASE_URL:-}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
+      VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-}
+      VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+      VITE_FIREBASE_MEASUREMENT_ID: ${VITE_FIREBASE_MEASUREMENT_ID:-}
+      VITE_OPENAI_API_KEY: ${VITE_OPENAI_API_KEY:-}
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+    volumes:
+      - ./collabcanva-app:/app
+      - /app/node_modules
+      - /app/dist
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - dev-env-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:

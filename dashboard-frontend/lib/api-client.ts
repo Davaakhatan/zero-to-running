@@ -4,8 +4,18 @@
  */
 
 // API base URL - in browser, always use localhost since browser runs on host machine
-// The NEXT_PUBLIC_API_URL is set at build time in Docker
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+// The NEXT_PUBLIC_API_URL is set at build time in Docker, but we override for browser
+// Browser-side code always uses localhost (for local Docker Desktop)
+const getApiBaseUrl = (): string => {
+  // If running in browser (client-side), always use localhost for local Docker Desktop
+  if (typeof window !== 'undefined') {
+    return 'http://localhost:3003';
+  }
+  // Server-side (SSR) can use the Kubernetes service name or Docker service name
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface Service {
   id: string;
@@ -107,21 +117,38 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      });
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 15000); // 15 second timeout (increased for slow compilations)
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      return await response.json();
     } catch (error) {
-      console.error(`API request error for ${endpoint}:`, error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`API request timeout for ${endpoint} (${url})`);
+        throw new Error(`Request timeout: ${endpoint}`);
+      }
+      console.error(`API request error for ${endpoint} (${url}):`, error);
       throw error;
     }
   }

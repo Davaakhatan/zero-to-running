@@ -1,8 +1,11 @@
 # Backend Dockerfile (Fastify)
 FROM node:20-alpine
 
-# Install Docker CLI and pnpm
-RUN apk add --no-cache docker-cli && \
+# Install Docker CLI, kubectl, and pnpm (support both Docker and Kubernetes)
+RUN apk add --no-cache docker-cli curl && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/ && \
     corepack enable && corepack prepare pnpm@latest --activate
 
 # Set working directory

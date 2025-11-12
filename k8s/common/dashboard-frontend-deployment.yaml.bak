@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
       - name: dashboard-frontend
-        image: 971422717446.dkr.ecr.us-east-1.amazonaws.com/dev-env-dashboard-frontend:latest  # Update with your container registry image
+        image: YOUR_REGISTRY/dev-env-dashboard-frontend:latest  # Update with your container registry image
         imagePullPolicy: Always
         ports:
         - containerPort: 3000

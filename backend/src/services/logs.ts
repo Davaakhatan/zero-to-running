@@ -1,6 +1,19 @@
 import Docker from 'dockerode';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { isKubernetes, getKubernetesNamespace } from '../utils/environment.js';
 
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+const execAsync = promisify(exec);
+
+// Initialize Docker client (only if not in Kubernetes)
+let docker: Docker | null = null;
+if (!isKubernetes()) {
+  try {
+    docker = new Docker({ socketPath: '/var/run/docker.sock' });
+  } catch (error) {
+    console.warn('Docker socket not available');
+  }
+}
 
 export interface LogEntry {
   id: string;
@@ -32,6 +45,9 @@ const SERVICE_TO_CONTAINER: Record<string, string> = {
   'application frontend': 'dev-env-app-frontend',
   'dashboard-frontend': 'dev-env-dashboard-frontend',
   'dashboard frontend': 'dev-env-dashboard-frontend',
+  'collabcanva': 'dev-env-collabcanva',
+  'collab canvas': 'dev-env-collabcanva',
+  'collab-canva': 'dev-env-collabcanva',
 };
 
 // Map container names to service display names
@@ -41,7 +57,33 @@ const CONTAINER_TO_SERVICE: Record<string, string> = {
   'dev-env-redis': 'Cache Service',
   'dev-env-app-frontend': 'Application Frontend',
   'dev-env-dashboard-frontend': 'Dashboard Frontend',
+  'dev-env-collabcanva': 'CollabCanva',
 };
+
+// Map Kubernetes pod name patterns to service display names
+const POD_TO_SERVICE: Record<string, string> = {
+  'backend': 'API Server',
+  'postgres': 'Database',
+  'redis': 'Cache Service',
+  'app-frontend': 'Application Frontend',
+  'dashboard-frontend': 'Dashboard Frontend',
+  'collabcanva': 'CollabCanva',
+};
+
+/**
+ * Get service display name from pod/container name
+ */
+function getServiceDisplayName(podOrContainerName: string): string {
+  // Try Kubernetes pod name pattern first
+  for (const [pattern, displayName] of Object.entries(POD_TO_SERVICE)) {
+    if (podOrContainerName.includes(pattern)) {
+      return displayName;
+    }
+  }
+  
+  // Fallback to container name mapping
+  return CONTAINER_TO_SERVICE[podOrContainerName] || podOrContainerName;
+}
 
 /**
  * Parse Docker log line format
@@ -98,7 +140,7 @@ function parseLogLine(line: string, containerName: string): LogEntry | null {
         id: `${containerName}-${Date.now()}-${Math.random()}`,
         timestamp: jsonLog.time || jsonLog.timestamp || jsonLog['@timestamp'] || new Date().toISOString(),
         level,
-        service: CONTAINER_TO_SERVICE[containerName] || containerName,
+        service: getServiceDisplayName(containerName),
         message: jsonLog.message || jsonLog.msg || cleanLine,
         details: jsonLog.details || jsonLog.error || jsonLog.stack || undefined,
       };
@@ -140,7 +182,7 @@ function parseLogLine(line: string, containerName: string): LogEntry | null {
       id: `${containerName}-${Date.now()}-${Math.random()}`,
       timestamp,
       level,
-      service: CONTAINER_TO_SERVICE[containerName] || containerName,
+      service: getServiceDisplayName(containerName),
       message,
     };
   } catch (error) {
@@ -154,7 +196,7 @@ function parseLogLine(line: string, containerName: string): LogEntry | null {
       id: `${containerName}-${Date.now()}-${Math.random()}`,
       timestamp: new Date().toISOString(),
       level: 'info',
-      service: CONTAINER_TO_SERVICE[containerName] || containerName,
+      service: getServiceDisplayName(containerName),
       message: cleanMessage,
     };
   }
@@ -182,16 +224,59 @@ function detectLogLevel(message: string): 'info' | 'warning' | 'error' | 'debug'
 }
 
 /**
+ * Get logs from a Kubernetes pod
+ */
+async function getKubernetesPodLogs(podName: string, limit: number = 100): Promise<LogEntry[]> {
+  try {
+    const namespace = getKubernetesNamespace();
+    
+    // Get pod logs using kubectl
+    const { stdout } = await execAsync(
+      `kubectl logs -n ${namespace} ${podName} --tail=${limit} --timestamps 2>/dev/null || echo ""`
+    );
+
+    if (!stdout.trim()) {
+      return [];
+    }
+
+    const logs: LogEntry[] = [];
+    const lines = stdout.trim().split('\n');
+
+    for (const line of lines) {
+      const parsed = parseLogLine(line, podName);
+      if (parsed) {
+        // Map pod name to service display name
+        parsed.service = getServiceDisplayName(podName);
+        logs.push(parsed);
+      }
+    }
+
+    return logs;
+  } catch (error) {
+    console.error(`Error getting logs from pod ${podName}:`, error);
+    return [];
+  }
+}
+
+/**
  * Get logs from a Docker container
  */
-async function getContainerLogs(containerName: string, limit: number = 100): Promise<LogEntry[]> {
+async function getDockerContainerLogs(containerName: string, limit: number = 100): Promise<LogEntry[]> {
+  if (!docker) {
+    return [];
+  }
+
   try {
     const containers = await docker.listContainers({ all: true });
+    // Container names in Docker have a leading slash, so we need to check both
     const containerInfo = containers.find(c => 
-      c.Names.some(name => name.includes(containerName))
+      c.Names.some(name => 
+        name.includes(containerName) || name.includes(`/${containerName}`)
+      )
     );
 
     if (!containerInfo) {
+      console.warn(`Container not found: ${containerName}`);
       return [];
     }
 
@@ -226,17 +311,35 @@ async function getContainerLogs(containerName: string, limit: number = 100): Pro
           break; // Not enough data for message
         }
         
-        // Extract timestamp (first part of message)
+        // Extract message (skip 8-byte header)
         const messageBuffer = logBuffer.slice(offset + 8, offset + 8 + size);
-        const messageText = messageBuffer.toString('utf-8');
+        const messageText = messageBuffer.toString('utf-8').trim();
         
-        // Parse the log line
-        const parsed = parseLogLine(messageText, containerName);
-        if (parsed) {
-          logs.push(parsed);
+        // Only parse non-empty lines
+        if (messageText && messageText.length > 0) {
+          // Parse the log line
+          const parsed = parseLogLine(messageText, containerName);
+          if (parsed) {
+            // Map container name to service display name
+            parsed.service = getServiceDisplayName(containerName);
+            logs.push(parsed);
+          }
         }
         
         offset += 8 + size;
+      }
+      
+      // If we didn't get any logs from binary parsing, try simple line-by-line parsing
+      if (logs.length === 0 && logBuffer.length > 0) {
+        const text = logBuffer.toString('utf-8');
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        for (const line of lines.slice(-limit)) {
+          const parsed = parseLogLine(line.trim(), containerName);
+          if (parsed) {
+            parsed.service = getServiceDisplayName(containerName);
+            logs.push(parsed);
+          }
+        }
       }
     }
 
@@ -259,23 +362,93 @@ export async function getLogs(filters: LogFilters): Promise<LogEntry[]> {
     // Limit the number of logs fetched to prevent memory issues
     const maxLogsPerContainer = Math.min(filters.limit || 100, 200); // Cap at 200 per container
 
-    if (filters.service) {
-      // Get logs from specific service
-      const containerName = SERVICE_TO_CONTAINER[filters.service.toLowerCase()];
-      if (containerName) {
-        const logs = await getContainerLogs(containerName, maxLogsPerContainer);
-        allLogs.push(...logs);
+    if (isKubernetes()) {
+      // Kubernetes mode: use kubectl to get pod logs
+      if (filters.service) {
+        // Map service name to pod name pattern
+        const serviceName = filters.service.toLowerCase();
+        const podNamePattern = SERVICE_TO_CONTAINER[serviceName] || serviceName;
+        
+        // Get all pods matching the pattern
+        const namespace = getKubernetesNamespace();
+        const { stdout } = await execAsync(
+          `kubectl get pods -n ${namespace} -o json 2>/dev/null || echo "{}"`
+        );
+        
+        const pods = JSON.parse(stdout || '{}');
+        if (pods.items) {
+          const matchingPods = pods.items.filter((pod: any) => 
+            pod.metadata.name.includes(podNamePattern.replace('dev-env-', ''))
+          );
+          
+          const logPromises = matchingPods.map((pod: any) => 
+            getKubernetesPodLogs(pod.metadata.name, maxLogsPerContainer)
+          );
+          const logArrays = await Promise.all(logPromises);
+          allLogs = logArrays.flat();
+        }
+      } else {
+        // Get logs from all pods
+        const namespace = getKubernetesNamespace();
+        const { stdout } = await execAsync(
+          `kubectl get pods -n ${namespace} -o json 2>/dev/null || echo "{}"`
+        );
+        
+        const pods = JSON.parse(stdout || '{}');
+        if (pods.items) {
+          const logsPerPod = Math.ceil(maxLogsPerContainer / pods.items.length);
+          const logPromises = pods.items.map((pod: any) => 
+            getKubernetesPodLogs(pod.metadata.name, logsPerPod)
+          );
+          const logArrays = await Promise.all(logPromises);
+          allLogs = logArrays.flat();
+        }
       }
     } else {
-      // Get logs from all containers in parallel
-      const containerNames = Object.values(SERVICE_TO_CONTAINER);
-      const logsPerContainer = Math.ceil(maxLogsPerContainer / containerNames.length);
-      const logPromises = containerNames.map(name => 
-        getContainerLogs(name, logsPerContainer)
-      );
-      
-      const logArrays = await Promise.all(logPromises);
-      allLogs = logArrays.flat();
+      // Docker mode: use dockerode
+      if (filters.service) {
+        // Get logs from specific service
+        const containerName = SERVICE_TO_CONTAINER[filters.service.toLowerCase()];
+        if (containerName) {
+          const logs = await getDockerContainerLogs(containerName, maxLogsPerContainer);
+          allLogs.push(...logs);
+        }
+      } else {
+        // Get logs from all containers dynamically
+        // First, get all running containers that match our service pattern
+        if (!docker) {
+          return [];
+        }
+        const containers = await docker.listContainers({ all: false });
+        const serviceContainerNames = Object.values(SERVICE_TO_CONTAINER);
+        
+        // Find all containers that match our service names
+        const matchingContainers = containers
+          .filter(c => 
+            c.Names.some(name => 
+              serviceContainerNames.some(serviceName => 
+                name.includes(serviceName)
+              )
+            )
+          )
+          .map(c => {
+            // Extract the container name (remove leading slash)
+            const containerName = c.Names[0].replace(/^\//, '');
+            return containerName;
+          });
+        
+        // Get logs from all matching containers in parallel
+        const logsPerContainer = matchingContainers.length > 0 
+          ? Math.ceil(maxLogsPerContainer / matchingContainers.length)
+          : maxLogsPerContainer;
+        
+        const logPromises = matchingContainers.map(name => 
+          getDockerContainerLogs(name, logsPerContainer)
+        );
+        
+        const logArrays = await Promise.all(logPromises);
+        allLogs = logArrays.flat();
+      }
     }
 
     // Filter by level

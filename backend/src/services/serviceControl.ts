@@ -1,6 +1,19 @@
 import Docker from 'dockerode';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { isKubernetes, getKubernetesNamespace } from '../utils/environment.js';
 
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+const execAsync = promisify(exec);
+
+// Initialize Docker client (only if not in Kubernetes)
+let docker: Docker | null = null;
+if (!isKubernetes()) {
+  try {
+    docker = new Docker({ socketPath: '/var/run/docker.sock' });
+  } catch (error) {
+    console.warn('Docker socket not available');
+  }
+}
 
 // Map service IDs to Docker container names
 const SERVICE_TO_CONTAINER: Record<string, string> = {
@@ -29,9 +42,86 @@ function getContainerName(serviceId: string): string | null {
 }
 
 /**
+ * Check if a resource is a StatefulSet or Deployment
+ */
+async function getKubernetesResourceType(name: string, namespace: string): Promise<'statefulset' | 'deployment' | null> {
+  try {
+    // Check if it's a StatefulSet (redirect stderr to /dev/null to suppress errors)
+    const { stdout } = await execAsync(`kubectl get statefulset ${name} -n ${namespace} -o name 2>/dev/null || true`);
+    if (stdout && stdout.trim().includes('statefulset')) {
+      return 'statefulset';
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  try {
+    // Check if it's a Deployment
+    const { stdout } = await execAsync(`kubectl get deployment ${name} -n ${namespace} -o name 2>/dev/null || true`);
+    if (stdout && stdout.trim().includes('deployment')) {
+      return 'deployment';
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  return null;
+}
+
+/**
+ * Start a service (Kubernetes pod via deployment/statefulset scale or restart)
+ */
+async function startKubernetesService(serviceId: string): Promise<ServiceActionResponse> {
+  try {
+    const namespace = getKubernetesNamespace();
+    const resourceName = getContainerName(serviceId)?.replace('dev-env-', '') || serviceId;
+    
+    // Determine if it's a StatefulSet or Deployment
+    const resourceType = await getKubernetesResourceType(resourceName, namespace);
+    
+    if (!resourceType) {
+      return {
+        success: false,
+        message: `Resource ${resourceName} not found (neither StatefulSet nor Deployment)`,
+      };
+    }
+    
+    if (resourceType === 'statefulset') {
+      // For StatefulSets, scale to 1 replica to start
+      await execAsync(`kubectl scale statefulset/${resourceName} --replicas=1 -n ${namespace}`);
+      return {
+        success: true,
+        message: `Service ${serviceId} scaled to 1 (Kubernetes StatefulSet)`,
+        containerName: resourceName,
+      };
+    } else {
+      // For Deployments, scale to 1 replica to start
+      await execAsync(`kubectl scale deployment/${resourceName} --replicas=1 -n ${namespace}`);
+      return {
+        success: true,
+        message: `Service ${serviceId} scaled to 1 (Kubernetes Deployment)`,
+        containerName: resourceName,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to start service',
+    };
+  }
+}
+
+/**
  * Start a service (Docker container)
  */
-export async function startService(serviceId: string): Promise<ServiceActionResponse> {
+async function startDockerService(serviceId: string): Promise<ServiceActionResponse> {
+  if (!docker) {
+    return {
+      success: false,
+      message: 'Docker not available',
+    };
+  }
+
   try {
     const containerName = getContainerName(serviceId);
     
@@ -85,9 +175,65 @@ export async function startService(serviceId: string): Promise<ServiceActionResp
 }
 
 /**
+ * Start a service (Docker or Kubernetes)
+ */
+export async function startService(serviceId: string): Promise<ServiceActionResponse> {
+  if (isKubernetes()) {
+    return startKubernetesService(serviceId);
+  } else {
+    return startDockerService(serviceId);
+  }
+}
+
+/**
+ * Stop a service (Kubernetes - scale to 0)
+ */
+async function stopKubernetesService(serviceId: string): Promise<ServiceActionResponse> {
+  try {
+    const namespace = getKubernetesNamespace();
+    const resourceName = getContainerName(serviceId)?.replace('dev-env-', '') || serviceId;
+    
+    // Determine if it's a StatefulSet or Deployment
+    const resourceType = await getKubernetesResourceType(resourceName, namespace);
+    
+    if (!resourceType) {
+      return {
+        success: false,
+        message: `Resource ${resourceName} not found (neither StatefulSet nor Deployment)`,
+      };
+    }
+    
+    // Scale to 0 (works for both StatefulSets and Deployments)
+    if (resourceType === 'statefulset') {
+      await execAsync(`kubectl scale statefulset/${resourceName} --replicas=0 -n ${namespace}`);
+    } else {
+      await execAsync(`kubectl scale deployment/${resourceName} --replicas=0 -n ${namespace}`);
+    }
+    
+    return {
+      success: true,
+      message: `Service ${serviceId} scaled to 0 (Kubernetes ${resourceType})`,
+      containerName: resourceName,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to stop service',
+    };
+  }
+}
+
+/**
  * Stop a service (Docker container)
  */
-export async function stopService(serviceId: string): Promise<ServiceActionResponse> {
+async function stopDockerService(serviceId: string): Promise<ServiceActionResponse> {
+  if (!docker) {
+    return {
+      success: false,
+      message: 'Docker not available',
+    };
+  }
+
   try {
     const containerName = getContainerName(serviceId);
     
@@ -129,9 +275,65 @@ export async function stopService(serviceId: string): Promise<ServiceActionRespo
 }
 
 /**
+ * Stop a service (Docker or Kubernetes)
+ */
+export async function stopService(serviceId: string): Promise<ServiceActionResponse> {
+  if (isKubernetes()) {
+    return stopKubernetesService(serviceId);
+  } else {
+    return stopDockerService(serviceId);
+  }
+}
+
+/**
+ * Restart a service (Kubernetes - rollout restart)
+ */
+async function restartKubernetesService(serviceId: string): Promise<ServiceActionResponse> {
+  try {
+    const namespace = getKubernetesNamespace();
+    const resourceName = getContainerName(serviceId)?.replace('dev-env-', '') || serviceId;
+    
+    // Determine if it's a StatefulSet or Deployment
+    const resourceType = await getKubernetesResourceType(resourceName, namespace);
+    
+    if (!resourceType) {
+      return {
+        success: false,
+        message: `Resource ${resourceName} not found (neither StatefulSet nor Deployment)`,
+      };
+    }
+    
+    // Restart (works for both StatefulSets and Deployments)
+    if (resourceType === 'statefulset') {
+      await execAsync(`kubectl rollout restart statefulset/${resourceName} -n ${namespace}`);
+    } else {
+      await execAsync(`kubectl rollout restart deployment/${resourceName} -n ${namespace}`);
+    }
+    
+    return {
+      success: true,
+      message: `Service ${serviceId} restart initiated (Kubernetes ${resourceType})`,
+      containerName: resourceName,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to restart service',
+    };
+  }
+}
+
+/**
  * Restart a service (Docker container)
  */
-export async function restartService(serviceId: string): Promise<ServiceActionResponse> {
+async function restartDockerService(serviceId: string): Promise<ServiceActionResponse> {
+  if (!docker) {
+    return {
+      success: false,
+      message: 'Docker not available',
+    };
+  }
+
   try {
     const containerName = getContainerName(serviceId);
     
@@ -169,6 +371,17 @@ export async function restartService(serviceId: string): Promise<ServiceActionRe
       success: false,
       message: error instanceof Error ? error.message : 'Failed to restart service',
     };
+  }
+}
+
+/**
+ * Restart a service (Docker or Kubernetes)
+ */
+export async function restartService(serviceId: string): Promise<ServiceActionResponse> {
+  if (isKubernetes()) {
+    return restartKubernetesService(serviceId);
+  } else {
+    return restartDockerService(serviceId);
   }
 }
 

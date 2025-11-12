@@ -21,9 +21,11 @@ export function ServiceDependencyGraph() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
+        setIsLoading(true)
+        setError(null)
         const apiServices = await getServices()
         
-        // Map API services to our graph format
+        // Map API services to our graph format - dynamically handle all services
         const mappedServices: Service[] = apiServices.map(apiService => {
           let type: "database" | "cache" | "api" | "frontend" = "api"
           let dependencies: string[] = []
@@ -37,7 +39,7 @@ export function ServiceDependencyGraph() {
           } else if (apiService.id === "api-server") {
             type = "api"
             dependencies = ["database", "cache"]
-          } else if (apiService.id === "app-frontend") {
+          } else if (apiService.id === "app-frontend" || apiService.id === "dashboard-frontend" || apiService.id === "collabcanva") {
             type = "frontend"
             dependencies = ["api-server"]
           }

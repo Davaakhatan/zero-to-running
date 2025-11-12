@@ -6,7 +6,7 @@ const nextConfig = {
   compress: true, // Enable gzip compression
   poweredByHeader: false, // Remove X-Powered-By header for security
   reactStrictMode: true, // Enable React strict mode
-  swcMinify: true, // Use SWC minifier (faster than Terser)
+  // swcMinify is deprecated in Next.js 16, SWC is used by default
   
   typescript: {
     ignoreBuildErrors: false, // Don't ignore build errors in production

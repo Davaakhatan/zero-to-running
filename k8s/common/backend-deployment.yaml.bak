@@ -32,10 +32,9 @@ spec:
       labels:
         app: backend
     spec:
-      serviceAccountName: backend-serviceaccount
       containers:
       - name: backend
-        image: 971422717446.dkr.ecr.us-east-1.amazonaws.com/dev-env-backend:latest  # Update with your container registry image
+        image: YOUR_REGISTRY/dev-env-backend:latest  # Update with your container registry image
         imagePullPolicy: Always
         ports:
         - containerPort: 3003

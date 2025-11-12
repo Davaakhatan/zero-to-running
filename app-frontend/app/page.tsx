@@ -19,7 +19,10 @@ export default function Home() {
   const [currentQuote, setCurrentQuote] = useState(quotes[0])
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking")
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003"
+  // In browser, always use localhost (via port-forward). Server-side can use service name
+  const API_URL = typeof window !== 'undefined' 
+    ? "http://localhost:3003" 
+    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003")
 
   // Check backend API status
   useEffect(() => {

@@ -25,12 +25,14 @@ export function ResourceUsageDashboard() {
   useEffect(() => {
     const fetchResources = async () => {
       try {
+        setIsLoading(true)
         setError(null)
         const data = await getResources()
         setContainers(data.containers || [])
       } catch (err) {
         console.error('Failed to fetch resources:', err)
         setError(err instanceof Error ? err.message : 'Failed to load resource metrics')
+        setContainers([]) // Set empty array on error
       } finally {
         setIsLoading(false)
       }

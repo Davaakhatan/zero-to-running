@@ -171,7 +171,7 @@ echo "✅ kubectl configured"
 # 2. Create ECR repos
 echo ""
 echo "📦 Step 2: Creating ECR repositories..."
-for repo in dev-env-backend dev-env-app-frontend dev-env-dashboard-frontend; do
+for repo in dev-env-backend dev-env-app-frontend dev-env-dashboard-frontend dev-env-collabcanva; do
     if aws ecr describe-repositories --repository-names $repo --region $AWS_REGION >/dev/null 2>&1; then
         echo "  ✅ $repo already exists"
     else
@@ -205,6 +205,11 @@ docker build -t $ECR_URL/dev-env-dashboard-frontend:latest ./dashboard-frontend 
 docker push $ECR_URL/dev-env-dashboard-frontend:latest >/dev/null 2>&1
 echo "  ✅ Dashboard frontend pushed"
 
+echo "  Building collabcanva..."
+docker build -t $ECR_URL/dev-env-collabcanva:latest --target production ./collabcanva-app >/dev/null 2>&1
+docker push $ECR_URL/dev-env-collabcanva:latest >/dev/null 2>&1
+echo "  ✅ CollabCanva pushed"
+
 # 4. Update image references
 echo ""
 echo "📝 Step 4: Updating image references..."
@@ -214,11 +219,13 @@ cd "$PROJECT_ROOT/k8s/common"
 cp backend-deployment.yaml backend-deployment.yaml.bak
 cp app-frontend-deployment.yaml app-frontend-deployment.yaml.bak
 cp dashboard-frontend-deployment.yaml dashboard-frontend-deployment.yaml.bak
+cp collabcanva-deployment.yaml collabcanva-deployment.yaml.bak 2>/dev/null || true
 
 # Update image URLs
 sed -i.bak "s|YOUR_REGISTRY|$ECR_URL|g" backend-deployment.yaml
 sed -i.bak "s|YOUR_REGISTRY|$ECR_URL|g" app-frontend-deployment.yaml
 sed -i.bak "s|YOUR_REGISTRY|$ECR_URL|g" dashboard-frontend-deployment.yaml
+sed -i.bak "s|971422717446.dkr.ecr.us-east-1.amazonaws.com|$ECR_URL|g" collabcanva-deployment.yaml 2>/dev/null || true
 
 echo "  ✅ Image references updated"
 
@@ -238,6 +245,7 @@ echo "🌐 Access services via port-forwarding:"
 echo "   kubectl port-forward service/backend-service 3003:3003 -n dev-env"
 echo "   kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env"
 echo "   kubectl port-forward service/dashboard-frontend-service 3001:3000 -n dev-env"
+echo "   kubectl port-forward service/collabcanva-service 3002:3002 -n dev-env"
 echo ""
 echo "🧹 To cleanup:"
 echo "   eksctl delete cluster --name $CLUSTER_NAME --region $AWS_REGION"

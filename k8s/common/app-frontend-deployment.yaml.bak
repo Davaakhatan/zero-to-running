@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: dashboard-frontend-service
+  name: app-frontend-service
   namespace: dev-env
   labels:
-    app: dashboard-frontend
+    app: app-frontend
 spec:
   type: ClusterIP
   ports:
@@ -13,28 +13,28 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: dashboard-frontend
+    app: app-frontend
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dashboard-frontend
+  name: app-frontend
   namespace: dev-env
   labels:
-    app: dashboard-frontend
+    app: app-frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dashboard-frontend
+      app: app-frontend
   template:
     metadata:
       labels:
-        app: dashboard-frontend
+        app: app-frontend
     spec:
       containers:
-      - name: dashboard-frontend
-        image: 971422717446.dkr.ecr.us-east-1.amazonaws.com/dev-env-dashboard-frontend:latest  # Update with your container registry image
+      - name: app-frontend
+        image: YOUR_REGISTRY/dev-env-app-frontend:latest  # Update with your container registry image
         imagePullPolicy: Always
         ports:
         - containerPort: 3000

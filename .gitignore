@@ -79,3 +79,8 @@ backend/*.log
 # Memory bank (optional - uncomment if you want to exclude)
 # memory-bank/
 
+dashboard-frontend/.pnpm-store/
+
+# pnpm store
+.pnpm-store/
+**/.pnpm-store/

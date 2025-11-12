@@ -34,8 +34,15 @@ export function initDatabase() {
 // Initialize Redis connection
 export function initRedis(): RedisClientType {
   if (!redisClient) {
+    // Use REDIS_URL from env, or default to redis-service (works in both Docker and K8s)
+    const redisUrl = process.env.REDIS_URL || 'redis://redis-service:6379';
+    
     redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: redisUrl,
+      socket: {
+        connectTimeout: 3000, // 3 second connection timeout
+        reconnectStrategy: false, // Don't auto-reconnect on error
+      },
     }) as RedisClientType;
 
     redisClient.on('error', (err) => {
@@ -80,11 +87,19 @@ export async function checkRedisHealth(): Promise<{ healthy: boolean; responseTi
   try {
     const client = initRedis();
     
-    if (!client.isOpen) {
-      await client.connect();
-    }
+    // Add timeout to prevent hanging (5 seconds max)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Redis health check timeout')), 5000);
+    });
     
-    const result = await client.ping();
+    const connectPromise = (async () => {
+      if (!client.isOpen) {
+        await client.connect();
+      }
+      return await client.ping();
+    })();
+    
+    const result = await Promise.race([connectPromise, timeoutPromise]);
     
     if (result === 'PONG') {
       return {
