@@ -37,12 +37,22 @@ echo ""
 echo "🔨 Building CollabCanva Docker image..."
 cd "$PROJECT_ROOT/collabcanva-app"
 
-# Build with production target and API URL
-# The API URL will be detected at runtime from the browser's hostname
-# For ingress, it will construct api.domain.com from collabcanva.domain.com
+# Get backend LoadBalancer URL if backend is exposed
+BACKEND_LB=$(kubectl get svc backend-service -n dev-env -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+BACKEND_URL=""
+if [ -n "$BACKEND_LB" ]; then
+    BACKEND_URL="http://$BACKEND_LB:3003"
+    echo "  Using backend LoadBalancer URL: $BACKEND_URL"
+else
+    echo "  ⚠️  Backend LoadBalancer not found. CollabCanva will use localhost:3003 (may not work via LoadBalancer)"
+    echo "  💡 Expose backend as LoadBalancer first, then rebuild CollabCanva"
+    BACKEND_URL="http://backend-service:3003"
+fi
+
+# Build with backend URL
 docker build \
   --target production \
-  --build-arg VITE_API_URL=http://backend-service:3003 \
+  --build-arg VITE_API_URL="$BACKEND_URL" \
   -t dev-env-collabcanva:latest .
 
 # Tag for ECR
