@@ -87,29 +87,58 @@ async function checkCommand(command: string): Promise<{ installed: boolean; vers
 
 /**
  * Get prerequisites status
+ * Dynamically shows prerequisites based on detected cloud provider
  */
 export async function getPrerequisites(): Promise<Prerequisite[]> {
-  const prerequisites: Prerequisite[] = [
+  const { detectCloudProvider } = await import('../utils/environment.js');
+  const cloudProvider = await detectCloudProvider();
+
+  // Base prerequisites (always required)
+  const basePrerequisites: Prerequisite[] = [
     { name: 'Docker', status: 'checking', required: true, description: 'Container runtime' },
     { name: 'kubectl', status: 'checking', required: true, description: 'Kubernetes CLI' },
-    { name: 'Azure CLI', status: 'checking', required: false, description: 'For AKS access' },
     { name: 'Node.js', status: 'checking', required: true, description: 'v18 or higher' },
     { name: 'pnpm', status: 'checking', required: true, description: 'Package manager' },
   ];
 
+  // Cloud-specific prerequisites
+  const cloudPrerequisites: Record<string, Prerequisite> = {
+    aws: { name: 'AWS CLI', status: 'checking', required: false, description: 'For EKS access' },
+    azure: { name: 'Azure CLI', status: 'checking', required: false, description: 'For AKS access' },
+    gcp: { name: 'gcloud CLI', status: 'checking', required: false, description: 'For GKE access' },
+  };
+
+  // Build prerequisites list
+  const prerequisites: Prerequisite[] = [...basePrerequisites];
+  
+  // Add cloud-specific prerequisite if detected
+  if (cloudProvider !== 'unknown' && cloudPrerequisites[cloudProvider]) {
+    prerequisites.push(cloudPrerequisites[cloudProvider]);
+  }
+
   // Check each prerequisite
-  const checks = await Promise.allSettled([
-    checkCommand('docker').then(r => ({ name: 'Docker', result: r })),
-    checkCommand('kubectl').then(r => ({ name: 'kubectl', result: r })),
-    checkCommand('az').then(r => ({ name: 'Azure CLI', result: r })),
-    checkCommand('node').then(r => ({ name: 'Node.js', result: r })),
-    checkCommand('pnpm').then(r => ({ name: 'pnpm', result: r })),
-  ]);
+  const checkCommands: Record<string, string> = {
+    'Docker': 'docker',
+    'kubectl': 'kubectl',
+    'Node.js': 'node',
+    'pnpm': 'pnpm',
+    'AWS CLI': 'aws',
+    'Azure CLI': 'az',
+    'gcloud CLI': 'gcloud',
+  };
+
+  const checks = await Promise.allSettled(
+    prerequisites.map(prereq => {
+      const command = checkCommands[prereq.name];
+      if (!command) return Promise.resolve({ name: prereq.name, result: { installed: false } });
+      return checkCommand(command).then(r => ({ name: prereq.name, result: r }));
+    })
+  );
 
   return prerequisites.map(prereq => {
     const check = checks.find(c => 
       c.status === 'fulfilled' && 
-      c.value.name.toLowerCase() === prereq.name.toLowerCase().split(' ')[0]
+      c.value.name === prereq.name
     );
 
     if (check && check.status === 'fulfilled') {
@@ -167,42 +196,35 @@ export async function getSetupSteps(): Promise<SetupStep[]> {
     service: 'backend',
   });
 
-  // Frontend services (dynamically included)
-  const frontendServices = services.filter(s => 
-    s.id === 'app-frontend' || 
-    s.id === 'dashboard-frontend' || 
-    s.id === 'collabcanva'
-  );
+  // Frontend services (dynamically discovered - exclude infrastructure services already shown)
+  const infrastructureIds = ['database', 'cache', 'api-server'];
+  const frontendServices = services.filter(s => !infrastructureIds.includes(s.id));
 
-  // Service name mapping for display
+  // Service name mapping for display (fallback to service name if not mapped)
   const serviceNameMap: Record<string, string> = {
     'app-frontend': 'Application Frontend',
     'dashboard-frontend': 'Dashboard Frontend',
     'collabcanva': 'CollabCanva',
   };
 
-  // Service tag mapping
+  // Service tag mapping (for UI display tags)
   const serviceTagMap: Record<string, string> = {
     'app-frontend': 'app-frontend',
     'dashboard-frontend': 'dashboard-frontend',
     'collabcanva': 'collabcanva',
   };
 
-  // Add frontend services in order: app-frontend, dashboard-frontend, collabcanva
-  const frontendOrder = ['app-frontend', 'dashboard-frontend', 'collabcanva'];
+  // Add all frontend services dynamically
   let stepId = 6;
-
-  for (const frontendId of frontendOrder) {
-    const frontendService = services.find(s => s.id === frontendId);
-    if (frontendService) {
-      steps.push({
-        id: String(stepId),
-        name: `Start ${serviceNameMap[frontendId] || frontendId}`,
-        status: frontendService.status === 'operational' ? 'completed' : frontendService.status === 'degraded' ? 'in-progress' : 'pending',
-        service: serviceTagMap[frontendId] || frontendId,
-      });
-      stepId++;
-    }
+  for (const frontendService of frontendServices) {
+    const displayName = serviceNameMap[frontendService.id] || frontendService.name;
+    steps.push({
+      id: String(stepId),
+      name: `Start ${displayName}`,
+      status: frontendService.status === 'operational' ? 'completed' : frontendService.status === 'degraded' ? 'in-progress' : 'pending',
+      service: serviceTagMap[frontendService.id] || frontendService.id,
+    });
+    stepId++;
   }
 
   // Health checks step

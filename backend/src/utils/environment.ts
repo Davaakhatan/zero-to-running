@@ -45,3 +45,69 @@ export function getKubernetesNamespace(): string {
   return process.env.KUBERNETES_NAMESPACE || 'dev-env';
 }
 
+/**
+ * Detect which cloud provider is being used
+ * Returns 'aws', 'azure', 'gcp', or 'unknown'
+ */
+export async function detectCloudProvider(): Promise<'aws' | 'azure' | 'gcp' | 'unknown'> {
+  // Check environment variables first
+  if (process.env.AWS_REGION || process.env.AWS_ACCOUNT_ID || process.env.AWS_EXECUTION_ENV) {
+    return 'aws';
+  }
+  if (process.env.AZURE_REGION || process.env.AZURE_SUBSCRIPTION_ID || process.env.AZURE_CLIENT_ID) {
+    return 'azure';
+  }
+  if (process.env.GCP_PROJECT || process.env.GCP_REGION || process.env.GOOGLE_CLOUD_PROJECT) {
+    return 'gcp';
+  }
+
+  // If in Kubernetes, try to detect from cluster info
+  if (isKubernetes()) {
+    try {
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      // Check kubectl context name
+      try {
+        const { stdout: context } = await execAsync('kubectl config current-context');
+        const contextLower = context.toLowerCase().trim();
+        
+        if (contextLower.includes('eks') || contextLower.includes('aws') || contextLower.includes('arn:aws')) {
+          return 'aws';
+        }
+        if (contextLower.includes('aks') || contextLower.includes('azure')) {
+          return 'azure';
+        }
+        if (contextLower.includes('gke') || contextLower.includes('gcp')) {
+          return 'gcp';
+        }
+      } catch {
+        // kubectl not available or not configured
+      }
+
+      // Check cluster info
+      try {
+        const { stdout: clusterInfo } = await execAsync('kubectl cluster-info');
+        const infoLower = clusterInfo.toLowerCase();
+        
+        if (infoLower.includes('eks') || infoLower.includes('.amazonaws.com')) {
+          return 'aws';
+        }
+        if (infoLower.includes('aks') || infoLower.includes('.azmk8s.io')) {
+          return 'azure';
+        }
+        if (infoLower.includes('gke') || infoLower.includes('.gke.io')) {
+          return 'gcp';
+        }
+      } catch {
+        // Can't get cluster info
+      }
+    } catch {
+      // Error detecting, return unknown
+    }
+  }
+
+  return 'unknown';
+}
+
