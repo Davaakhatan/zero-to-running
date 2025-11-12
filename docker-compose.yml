@@ -88,7 +88,7 @@ services:
     build:
       context: ./app-frontend
       dockerfile: Dockerfile
-      target: runner
+      target: base  # Use base stage for development (has all dependencies)
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3003
     container_name: dev-env-app-frontend
