@@ -167,10 +167,12 @@ docker push gcr.io/{project-id}/dev-env-backend:latest
 
 Update the image references in:
 - `common/backend-deployment.yaml`
-- `common/app-frontend-deployment.yaml`
 - `common/dashboard-frontend-deployment.yaml`
+- Your application deployment manifests
 
 Or use cloud-specific overlays in `aws/`, `azure/`, or `gcp/` directories.
+
+**Note**: Build scripts are provided for core services (backend, dashboard). You'll need to create build scripts for your own applications following the same pattern.
 
 ### 3. Update Secrets
 
@@ -195,11 +197,11 @@ Choose your cloud provider and follow the specific README:
 # Backend API
 kubectl port-forward service/backend-service 3003:3003 -n dev-env
 
-# Application Frontend
-kubectl port-forward service/app-frontend-service 3000:3000 -n dev-env
-
 # Dashboard Frontend
 kubectl port-forward service/dashboard-frontend-service 3001:3000 -n dev-env
+
+# Your Application(s)
+# kubectl port-forward service/your-app-service <port>:<port> -n dev-env
 ```
 
 ### Ingress (Cloud-Specific)
