@@ -25,9 +25,14 @@ COPY tsconfig.json ./
 COPY postcss.config.mjs ./
 COPY components.json ./
 
-# Set build-time environment variable for Next.js
+# Set build-time environment variables for Next.js
 ARG NEXT_PUBLIC_API_URL=http://localhost:3003
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Backend LoadBalancer URL for browser-side API calls (AWS only)
+# Set this when building for AWS: --build-arg NEXT_PUBLIC_BACKEND_URL=http://backend-lb:3003
+ARG NEXT_PUBLIC_BACKEND_URL=""
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
 # Build the application
 RUN pnpm build

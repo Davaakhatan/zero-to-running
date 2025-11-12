@@ -36,7 +36,26 @@ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --
 echo ""
 echo "🔨 Building Dashboard Frontend Docker image..."
 cd "$PROJECT_ROOT/dashboard-frontend"
-docker build -t dev-env-dashboard-frontend:latest .
+
+# Get backend LoadBalancer URL if backend is exposed
+BACKEND_LB=$(kubectl get svc backend-service -n dev-env -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+BACKEND_URL=""
+if [ -n "$BACKEND_LB" ]; then
+    BACKEND_URL="http://$BACKEND_LB:3003"
+    echo "  Using backend LoadBalancer URL: $BACKEND_URL"
+else
+    echo "  ⚠️  Backend LoadBalancer not found. Dashboard will use localhost:3003 (may not work via LoadBalancer)"
+    echo "  💡 Expose backend as LoadBalancer first, then rebuild dashboard"
+fi
+
+# Build with backend URL if available
+if [ -n "$BACKEND_URL" ]; then
+    docker build \
+      --build-arg NEXT_PUBLIC_BACKEND_URL="$BACKEND_URL" \
+      -t dev-env-dashboard-frontend:latest .
+else
+    docker build -t dev-env-dashboard-frontend:latest .
+fi
 
 # Tag for ECR
 echo ""

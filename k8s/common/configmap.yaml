@@ -17,6 +17,10 @@ data:
   # For browser requests via ingress, use the ingress URL
   # For internal requests, use the service name
   BACKEND_API_URL: "http://backend-service:3003"
+  # Backend LoadBalancer URL for dashboard frontend browser-side API calls
+  # Set this after backend LoadBalancer is provisioned
+  # Format: http://backend-loadbalancer-hostname:3003
+  BACKEND_LOADBALANCER_URL: ""  # Update this with actual backend LoadBalancer URL
   
   # Database Configuration
   POSTGRES_DB: "devenv"

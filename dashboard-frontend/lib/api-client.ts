@@ -3,16 +3,53 @@
  * Handles all API calls to the backend service
  */
 
-// API base URL - in browser, always use localhost since browser runs on host machine
-// The NEXT_PUBLIC_API_URL is set at build time in Docker, but we override for browser
-// Browser-side code always uses localhost (for local Docker Desktop)
+// API base URL - dynamically determines backend URL based on environment
 const getApiBaseUrl = (): string => {
-  // If running in browser (client-side), always use localhost for local Docker Desktop
-  if (typeof window !== 'undefined') {
+  // Server-side (SSR) can use the Kubernetes service name or Docker service name
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  }
+  
+  // Browser-side: detect environment and use appropriate backend URL
+  const hostname = window.location.hostname;
+  
+  // If accessing via AWS LoadBalancer (contains .elb.amazonaws.com)
+  // Try to get backend URL from runtime config or construct it
+  if (hostname.includes('.elb.amazonaws.com')) {
+    // Try to get from window.__BACKEND_URL__ (can be injected via script tag)
+    const runtimeBackendUrl = (window as any).__BACKEND_URL__;
+    if (runtimeBackendUrl) {
+      return runtimeBackendUrl;
+    }
+    
+    // Try NEXT_PUBLIC_BACKEND_URL (set at build time)
+    const buildTimeBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (buildTimeBackendUrl && !buildTimeBackendUrl.includes('localhost')) {
+      return buildTimeBackendUrl;
+    }
+    
+    // Fallback: Try to fetch backend URL from a known endpoint
+    // Or use a common pattern (backend LoadBalancer should be exposed)
+    // For now, we'll need to set it manually or rebuild
+    console.warn('Backend URL not configured for AWS LoadBalancer. API calls will fail.');
+    console.warn('Set window.__BACKEND_URL__ or rebuild with NEXT_PUBLIC_BACKEND_URL');
+    return 'http://localhost:3003'; // Will fail, but won't break the build
+  }
+  
+  // If accessing via localhost (local Docker Desktop)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3003';
   }
-  // Server-side (SSR) can use the Kubernetes service name or Docker service name
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
+  
+  // Default: try to construct from current origin
+  // If dashboard is at http://dashboard.example.com, backend might be at http://api.example.com
+  const origin = window.location.origin;
+  if (origin.includes('dashboard')) {
+    return origin.replace('dashboard', 'api').replace(':3000', ':3003').replace(':3001', ':3003');
+  }
+  
+  // Fallback to localhost
+  return 'http://localhost:3003';
 };
 
 const API_BASE_URL = getApiBaseUrl();
