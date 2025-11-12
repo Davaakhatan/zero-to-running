@@ -40,9 +40,9 @@
 
 ### The Solution (2 minutes)
 
-> **"That's why I built this: The Zero-to-Running Developer Environment."**
+> **"That's why I chose and built this: The Zero-to-Running Developer Environment."**
 
-*[Open terminal/IDE]*
+*[Open terminal/IDE - make sure you're in a clean state, no port-forwarding running]*
 
 > **"Watch this. A new developer joins the team. They clone the repository..."**
 
@@ -57,7 +57,7 @@ cd DevEnv
 make dev
 ```
 
-*[Let it run, show the output]*
+*[Let it run, show the output - this is the KEY moment]*
 
 > **"That's it. One command. In 30 seconds, they have:"**
 
@@ -65,13 +65,17 @@ make dev
 
 > **"PostgreSQL database—running and configured. Redis cache—ready to use. Backend API server—fully operational. Dashboard for monitoring—showing everything in real-time. And their application frontend—ready to code."**
 
-*[Open browser, show dashboard]*
+*[Open browser, show dashboard at http://localhost:3001]*
 
 > **"They can see everything working right here. Service status, health checks, logs, resource usage. All in one place. No configuration. No manual setup. No 'works on my machine' problems."**
 
-*[Show the dashboard pages]*
+*[Show the dashboard pages - navigate through them]*
 
 > **"The dashboard automatically discovers all services. It shows real-time status. They can see logs, check health, monitor resources—everything they need to understand what's running."**
+
+*[Emphasize the simplicity]*
+
+> **"No AWS setup. No Kubernetes configuration. No port-forwarding. No cloud credentials. Just one command, and everything works locally on their machine."**
 
 ---
 
@@ -119,17 +123,19 @@ make dev
 
 > **"Let me quickly show you what's under the hood."**
 
-*[Show architecture]*
+*[Show architecture - keep it simple]*
 
 > **"It's a framework. You get the infrastructure—PostgreSQL, Redis, Backend API, Dashboard. You add your applications. Everything is containerized with Docker Compose for local development."**
 
-*[Show Kubernetes option]*
+*[Optional: Mention Kubernetes briefly, but don't demo it]*
 
-> **"For production or demonstrations, you can deploy to AWS, Azure, or GCP with Kubernetes. But the primary goal is local development—getting developers productive fast."**
+> **"For production deployments, there's Kubernetes support for AWS, Azure, or GCP. But that's optional. The primary goal—and what makes this powerful—is local development. One command. Everything works."**
 
-*[Show dashboard features]*
+*[Show dashboard features - keep focus on local]*
 
-> **"The dashboard dynamically discovers all services. It's cloud-aware—it knows if you're on AWS, Azure, or GCP. It shows prerequisites, setup steps, health checks, logs—everything a developer needs to understand their environment."**
+> **"The dashboard dynamically discovers all services. It shows prerequisites, setup steps, health checks, logs—everything a developer needs to understand their environment. All running locally, no cloud needed."**
+
+*[Important: Don't show AWS/Kubernetes in the main demo - it breaks the "one command" narrative]*
 
 ---
 
@@ -183,25 +189,29 @@ make dev
 
 ### Before Demo
 - [ ] Terminal/IDE ready
-- [ ] Browser with dashboard open
+- [ ] Browser ready (will open dashboard during demo)
 - [ ] Repository cloned (or ready to clone)
 - [ ] Docker Desktop running
-- [ ] All services stopped (fresh start)
+- [ ] All services stopped (fresh start - run `make down` first)
+- [ ] **No port-forwarding processes running** (check with `ps aux | grep "kubectl port-forward"`)
+- [ ] **No AWS/Kubernetes connections active** (focus on local Docker only)
 
 ### During Demo
 - [ ] Show `git clone` command
 - [ ] Show `make dev` command
-- [ ] Let it run (30-60 seconds)
-- [ ] Show terminal output
-- [ ] Open dashboard in browser
+- [ ] Let it run (30-60 seconds) - **This is the KEY moment**
+- [ ] Show terminal output (services starting)
+- [ ] Open dashboard in browser at `http://localhost:3001`
 - [ ] Navigate through dashboard pages:
   - [ ] Setup Wizard
   - [ ] Dashboard Overview
-  - [ ] Services Status
+  - [ ] Services Status (all showing "operational")
   - [ ] Logs & Health Checks
   - [ ] Resource Usage
-- [ ] Show service discovery working
+- [ ] Show service discovery working (all services automatically detected)
 - [ ] Mention real-world time savings
+- [ ] **DO NOT show AWS/Kubernetes** - keep it local only
+- [ ] **DO NOT mention port-forwarding** - it's not needed for local setup
 
 ### After Demo
 - [ ] Q&A preparation
@@ -225,6 +235,8 @@ make dev
 6. **Be enthusiastic** - Your passion for solving this problem should show
 7. **Keep it simple** - Don't get lost in technical details
 8. **End strong** - Close with the vision and impact
+9. **Stay focused on local** - Don't mention AWS/Kubernetes unless asked. The "one command" story is about local development.
+10. **Avoid complexity** - If someone asks about production, acknowledge it exists but redirect to the core value: local developer productivity
 
 ---
 
@@ -263,7 +275,13 @@ A: The framework provides sensible defaults, but everything is configurable. Dev
 A: Since everything runs in Docker containers, it works the same on macOS, Linux, and Windows. No OS-specific configuration needed.
 
 **Q: What about production deployment?**  
-A: The project includes Kubernetes manifests for AWS, Azure, and GCP. But the primary focus is local development—getting developers productive fast.
+A: The project includes Kubernetes manifests for AWS, Azure, and GCP for those who need it. But the primary focus—and the main value—is local development. The "one command" experience is for local setup. Production deployment is a separate concern and doesn't affect the core developer experience.
+
+**Q: Do I need AWS or cloud setup for this to work?**  
+A: No! That's the beauty of it. Everything runs locally with Docker. No cloud accounts, no Kubernetes clusters, no port-forwarding. Just Docker Desktop and one command.
+
+**Q: What if I want to deploy to production later?**  
+A: The Kubernetes support is there when you need it, but it's completely optional. Most developers will use this for local development only, and that's perfectly fine.
 
 **Q: Can this work with existing projects?**  
 A: Yes! You can add this framework to existing projects. Just add your services to the docker-compose.yml, and the dashboard will automatically discover them.
