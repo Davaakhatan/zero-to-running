@@ -128,7 +128,7 @@ services:
       CI: "true"
     command: sh -c "cd /app && if [ ! -d node_modules/.bin/next ] || [ ! -f node_modules/react/cjs/react.development.js ]; then pnpm install --shamefully-hoist --no-frozen-lockfile; fi && pnpm dev"
     ports:
-      - "3001:3000"
+      - "3001:3001"
     depends_on:
       - backend
       - app-frontend

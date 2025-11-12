@@ -52,10 +52,10 @@ COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
 COPY --from=base /app/public ./public
 
-# Expose port (dashboard runs on 3000 inside container, mapped to 3001 on host)
-EXPOSE 3000
+# Expose port (dashboard runs on 3001 inside container)
+EXPOSE 3001
 
-ENV PORT=3000
+ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
 
