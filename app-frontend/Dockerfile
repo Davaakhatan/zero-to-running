@@ -49,7 +49,8 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
 
-# Start the application using standalone server (works with output: standalone)
-# This works for both Docker and Kubernetes
-CMD ["node", "server.js"]
+# Start the application
+# Use dev mode if NODE_ENV is development (for volume mounts in docker-compose)
+# Otherwise use production build (for Kubernetes)
+CMD sh -c "if [ \"$NODE_ENV\" = \"development\" ]; then pnpm dev; else node server.js; fi"
 
