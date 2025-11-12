@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The Zero-to-Running Developer Environment is an innovative solution that revolutionizes how developers set up their local development environments. The goal is to enable new engineers to clone a repository, execute a single command (`make dev`), and instantly have a fully functional multi-service application environment running.
+The Zero-to-Running Developer Environment is a **framework/template** that revolutionizes how developers set up their local development environments. The goal is to provide infrastructure services (PostgreSQL, Redis, Backend API, Dashboard) that developers can use as a foundation for their applications. New engineers clone the repository, add their application, execute a single command (`make dev`), and instantly have a fully functional multi-service application environment running.
 
 ## Core Problem
 
@@ -39,13 +39,15 @@ A single-command developer environment that:
 
 ## Technology Stack
 
-- **Frontend**: TypeScript, React, Tailwind CSS, Next.js 16
+- **Framework Core**: PostgreSQL, Redis, Backend API (Fastify), Dashboard Frontend
+- **Frontend Framework**: TypeScript, React, Tailwind CSS, Next.js 16
 - **Backend API**: Node.js, Fastify, TypeScript
 - **Database**: PostgreSQL
 - **Cache**: Redis
 - **Local Development**: Docker Compose (orchestration)
-- **Production Deployment**: Kubernetes (k8s) on Azure Kubernetes Service (AKS) - *Planned*
+- **Production Deployment**: Kubernetes (AWS EKS, Azure AKS, GCP GKE) - ✅ **Complete**
 - **Containerization**: Docker
+- **Multi-Cloud**: Build scripts and manifests for AWS, Azure, GCP
 
 ## Key Requirements
 
