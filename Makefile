@@ -42,8 +42,10 @@ dev: ## Start all services in development mode (default)
 	@echo "$(YELLOW)This may take a few minutes on first run...$(NC)"
 	@if [ ! -d "collabcanva-app" ] || [ ! -f "collabcanva-app/Dockerfile" ]; then \
 		echo "$(YELLOW)⚠️  CollabCanva app not found, skipping (optional service)$(NC)"; \
+		CONFIG_PATH=config/$(ENV).yaml docker-compose up -d --build --scale collabcanva=0; \
+	else \
+		CONFIG_PATH=config/$(ENV).yaml docker-compose --profile collabcanva up -d --build; \
 	fi
-	CONFIG_PATH=config/$(ENV).yaml docker-compose up -d --build
 	@echo ""
 	@echo "$(GREEN)✅ Services started!$(NC)"
 	@echo ""
