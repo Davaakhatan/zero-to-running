@@ -40,13 +40,7 @@ dev: ## Start all services in development mode (default)
 	@echo ""
 	@echo "$(GREEN)Starting services with Docker Compose...$(NC)"
 	@echo "$(YELLOW)This may take a few minutes on first run...$(NC)"
-	@if [ ! -d "collabcanva-app" ] || [ ! -f "collabcanva-app/Dockerfile" ]; then \
-		echo "$(YELLOW)⚠️  CollabCanva app not found, skipping (optional service)$(NC)"; \
-		CONFIG_PATH=config/$(ENV).yaml docker-compose build postgres redis backend app-frontend dashboard-frontend; \
-		CONFIG_PATH=config/$(ENV).yaml docker-compose up -d postgres redis backend app-frontend dashboard-frontend; \
-	else \
-		CONFIG_PATH=config/$(ENV).yaml docker-compose --profile collabcanva up -d --build; \
-	fi
+	CONFIG_PATH=config/$(ENV).yaml docker-compose up -d --build
 	@echo ""
 	@echo "$(GREEN)✅ Services started!$(NC)"
 	@echo ""

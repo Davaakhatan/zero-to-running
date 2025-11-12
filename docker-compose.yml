@@ -144,15 +144,12 @@ services:
       - dev-env-network
     restart: unless-stopped
 
-  # CollabCanva App (Port 3002) - Collaborative Canvas Application (Optional)
-  # Only build if collabcanva-app directory exists
+  # CollabCanva App (Port 3002) - Collaborative Canvas Application
   collabcanva:
     build:
       context: ./collabcanva-app
       dockerfile: Dockerfile
       target: runner
-    profiles:
-      - collabcanva  # Only start if explicitly requested
     container_name: dev-env-collabcanva
     environment:
       NODE_ENV: development
