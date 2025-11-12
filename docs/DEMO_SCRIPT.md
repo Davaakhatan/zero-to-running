@@ -1,10 +1,7 @@
 # Demo Script: Zero-to-Running Developer Environment
 
-## 🎬 Presentation Flow
-
 **Duration**: 5-7 minutes  
-**Audience**: Project reviewers, potential users, developers  
-**Goal**: Show how this project solves real-world developer onboarding problems
+**Goal**: Show how one command solves developer onboarding problems
 
 ---
 
@@ -12,300 +9,122 @@
 
 ### Opening (30 seconds)
 
-> **"Hi, I'm Dave. And I want to tell you about a problem I faced as a senior engineer in Mongolia, and how this project solves it."**
-
-*[Pause for connection]*
-
-> **"When I was a senior engineer, one of my favorite parts of the job was mentoring junior developers. I loved being their buddy, helping them adapt during their first few months. But there was one thing that frustrated me every single time: setting up their development environment."**
+> **"Hi, I'm Dave. When I was a senior engineer in Mongolia, I loved mentoring junior developers. But I spent 10 hours per new hire just setting up their development environment. That's why I built this."**
 
 ---
 
 ### The Problem (1 minute)
 
-> **"Picture this: A new junior engineer joins the team. They're excited, ready to code, full of energy. But then reality hits."**
+> **"A new developer joins. They're excited, ready to code. But then: PostgreSQL setup (2 hours). Redis configuration (1 hour). Backend API (3 hours). Environment variables (1 hour). Debugging (3 hours). That's 10 hours before they can write a single line of code."**
 
-*[Show empathy]*
-
-> **"They spend their first day—sometimes their first week—just trying to get their local environment working. Installing PostgreSQL, configuring Redis, setting up the backend API, dealing with port conflicts, database connection errors, cache configuration issues..."**
-
-*[Count on fingers]*
-
-> **"I'd spend hours with each new engineer, manually configuring their machines. Database setup: 2 hours. Cache configuration: 1 hour. Backend API setup: 3 hours. Environment variables: 1 hour. Debugging connection issues: 3 hours. That's 10 hours per engineer, and I had to do this for every single new hire."**
-
-*[Pause]*
-
-> **"And here's the worst part: Even after all that setup, we'd still have 'works on my machine' problems. Different versions, different configurations, different operating systems. It was a nightmare."**
+> **"And even after all that, we still had 'works on my machine' problems. Different versions, different configurations. It was a nightmare."**
 
 ---
 
 ### The Solution (2 minutes)
 
-> **"That's why I chose and built this: The Zero-to-Running Developer Environment."**
-
-*[Open terminal/IDE - make sure you're in a clean state, no port-forwarding running]*
-
-> **"Watch this. A new developer joins the team. They clone the repository..."**
+> **"Watch this. A new developer clones the repo..."**
 
 ```bash
 git clone <repo-url>
-cd DevEnv
-```
-
-> **"...and they run one command:"**
-
-```bash
+cd zero-to-running
 make dev
 ```
 
-*[Let it run, show the output - this is the KEY moment]*
+> **"That's it. One command. In 30 seconds:"**
 
-> **"That's it. One command. In 30 seconds, they have:"**
+*[Point to each]*
 
-*[Point to each as you mention]*
+> **"PostgreSQL—running. Redis—ready. Backend API—operational. Dashboard—showing everything. Application frontend—ready to code."**
 
-> **"PostgreSQL database—running and configured. Redis cache—ready to use. Backend API server—fully operational. Dashboard for monitoring—showing everything in real-time. And their application frontend—ready to code."**
+*[Open dashboard at http://localhost:3001]*
 
-*[Open browser, show dashboard at http://localhost:3001]*
+> **"They can see everything working. Service status, health checks, logs, resources. All in one place. No configuration. No manual setup."**
 
-> **"They can see everything working right here. Service status, health checks, logs, resource usage. All in one place. No configuration. No manual setup. No 'works on my machine' problems."**
-
-*[Show the dashboard pages - navigate through them]*
-
-> **"The dashboard automatically discovers all services. It shows real-time status. They can see logs, check health, monitor resources—everything they need to understand what's running."**
-
-*[Emphasize the simplicity]*
-
-> **"No AWS setup. No Kubernetes configuration. No port-forwarding. No cloud credentials. Just one command, and everything works locally on their machine."**
+> **"No AWS setup. No Kubernetes. No port-forwarding. Just one command, and everything works locally."**
 
 ---
 
 ### Real-World Impact (1.5 minutes)
 
-> **"Let me show you what this means in practice."**
+> **"Before: Day 1—Environment setup (8 hours). Day 2—Debugging (6 hours). Day 3—Finally coding (2 hours). That's 14 hours before they contribute."**
 
-*[Switch to real examples]*
+> **"With this: Day 1, Hour 1—Clone and run `make dev` (5 minutes). Rest of the day—Writing code, being productive. They're contributing on day one."**
 
-> **"Before this project: A junior engineer's first week looked like this—Day 1: Environment setup (8 hours). Day 2: Debugging setup issues (6 hours). Day 3: Finally writing code (2 hours). That's 14 hours before they can actually contribute."**
+> **"For me: Before—10 hours per new hire on setup. With this—5 minutes to verify. I can focus on mentoring, code reviews, architecture—the things that actually help them grow."**
 
-*[Pause]*
-
-> **"With this project: Day 1, Hour 1: Clone and run `make dev` (5 minutes). Hour 1-8: Writing code, learning the codebase, being productive. They're contributing on day one."**
-
-*[Show the difference]*
-
-> **"For me as a senior engineer: Before—10 hours per new hire on setup. With this—5 minutes to verify it's working. I can focus on mentoring, code reviews, architecture discussions—the things that actually help them grow."**
-
-*[Personal touch]*
-
-> **"And here's what I love: The culture I enjoyed in Mongolia—being a buddy to new engineers, helping them adapt—that's still possible. But now, instead of spending time on configuration, we're talking about code quality, best practices, system design. That's the mentorship I want to provide."**
+> **"The culture I loved in Mongolia—being a buddy to new engineers—that's still possible. But now, instead of configuration, we talk about code quality and best practices."**
 
 ---
 
-### Why Wander? (1 minute)
+### Why Wander? (30 seconds)
 
-> **"You might be wondering: Why did I choose this project for Wander?"**
-
-*[Reflect]*
-
-> **"Wander is about exploration, about making journeys easier. And that's exactly what this project does—it makes the journey from 'new developer' to 'productive team member' easier."**
-
-*[Connect the dots]*
-
-> **"Just like Wander helps travelers explore new places without getting lost, this project helps developers explore new codebases without getting stuck in configuration hell. It removes the barriers, so they can focus on what matters: building great software."**
-
-*[Vision]*
-
-> **"My vision is simple: Every developer, whether they're fresh out of university or a seasoned engineer joining a new team, should be able to start coding within 5 minutes. No exceptions. This project makes that possible."**
-
----
-
-### Technical Highlights (1 minute)
-
-> **"Let me quickly show you what's under the hood."**
-
-*[Show architecture - keep it simple]*
-
-> **"It's a framework. You get the infrastructure—PostgreSQL, Redis, Backend API, Dashboard. You add your applications. Everything is containerized with Docker Compose for local development."**
-
-*[Optional: Mention Kubernetes briefly, but don't demo it]*
-
-> **"For production deployments, there's Kubernetes support for AWS, Azure, or GCP. But that's optional. The primary goal—and what makes this powerful—is local development. One command. Everything works."**
-
-*[Show dashboard features - keep focus on local]*
-
-> **"The dashboard dynamically discovers all services. It shows prerequisites, setup steps, health checks, logs—everything a developer needs to understand their environment. All running locally, no cloud needed."**
-
-*[Important: Don't show AWS/Kubernetes in the main demo - it breaks the "one command" narrative]*
+> **"Wander is about making journeys easier. This project makes the journey from 'new developer' to 'productive team member' easier. It removes barriers so they can focus on building great software."**
 
 ---
 
 ### Closing (30 seconds)
 
-> **"So, to summarize: This project solves a real problem I faced as a senior engineer. It turns 10 hours of manual configuration into 5 minutes of automated setup. It lets me focus on mentoring instead of troubleshooting. And it helps new developers start contributing on day one."**
-
-*[Final statement]*
-
 > **"One command. Full environment. Zero configuration. That's the promise. And that's what makes the difference between a frustrating first week and a productive first day."**
 
-*[Pause]*
-
-> **"Thank you. I'm happy to answer any questions."**
+> **"Thank you. Questions?"**
 
 ---
 
-## 🎯 Key Talking Points
+## 🎯 Key Points
 
-### Problem
-- 10 hours per engineer on manual setup
-- "Works on my machine" problems
-- Time spent on configuration instead of mentoring
-
-### Solution
-- One command: `make dev`
-- 5 minutes to running environment
-- Zero configuration needed
-- Automatic service discovery
-
-### Impact
-- Developers productive on day one
-- Senior engineers focus on mentoring
-- Consistent environments across team
-- Reduced onboarding time by 95%
-
-### Personal Story
-- Senior engineer in Mongolia
-- Loved mentoring junior developers
-- Frustrated by repetitive setup tasks
-- Built this to solve the problem
-
-### Why Wander
-- Makes journeys easier
-- Removes barriers to exploration
-- Focus on what matters
+- **Problem**: 10 hours per engineer on manual setup
+- **Solution**: One command (`make dev`), 5 minutes
+- **Impact**: Developers productive on day one
+- **Personal**: Your story about mentoring in Mongolia
+- **Vision**: Every developer productive in 5 minutes
 
 ---
 
 ## 🎬 Demo Checklist
 
-### Before Demo
-- [ ] Terminal/IDE ready
-- [ ] Browser ready (will open dashboard during demo)
-- [ ] Repository cloned (or ready to clone)
+### Before
 - [ ] Docker Desktop running
-- [ ] All services stopped (fresh start - run `make down` first)
-- [ ] **No port-forwarding processes running** (check with `ps aux | grep "kubectl port-forward"`)
-- [ ] **No AWS/Kubernetes connections active** (focus on local Docker only)
+- [ ] All services stopped (`make down`)
+- [ ] No port-forwarding running
+- [ ] Terminal ready
+- [ ] Browser ready
 
-### During Demo
-- [ ] Show `git clone` command
-- [ ] Show `make dev` command
-- [ ] Let it run (30-60 seconds) - **This is the KEY moment**
-- [ ] Show terminal output (services starting)
-- [ ] Open dashboard in browser at `http://localhost:3001`
-- [ ] Navigate through dashboard pages:
-  - [ ] Setup Wizard
-  - [ ] Dashboard Overview
-  - [ ] Services Status (all showing "operational")
-  - [ ] Logs & Health Checks
-  - [ ] Resource Usage
-- [ ] Show service discovery working (all services automatically detected)
-- [ ] Mention real-world time savings
-- [ ] **DO NOT show AWS/Kubernetes** - keep it local only
-- [ ] **DO NOT mention port-forwarding** - it's not needed for local setup
+### During
+- [ ] Show `git clone`
+- [ ] Show `make dev` (KEY moment - let it run)
+- [ ] Open dashboard at `http://localhost:3001`
+- [ ] Show services working
+- [ ] **DO NOT show AWS/Kubernetes**
 
-### After Demo
-- [ ] Q&A preparation
-- [ ] Have backup examples ready
-- [ ] Know the technical details
-- [ ] Be ready to discuss:
-  - How to add new services
-  - How it works under the hood
-  - Production deployment options
-  - Future enhancements
+### After
+- [ ] Q&A ready
+- [ ] Know technical details
+- [ ] Be ready to discuss adding services
 
 ---
 
-## 💡 Tips for Delivery
+## 💡 Tips
 
-1. **Start with the story** - People connect with personal experiences
-2. **Show, don't just tell** - Let them see `make dev` actually work
-3. **Use real numbers** - "10 hours" vs "5 minutes" is powerful
+1. **Start with story** - Personal connection
+2. **Show, don't tell** - Let them see `make dev` work
+3. **Use numbers** - "10 hours vs 5 minutes"
 4. **Pause for impact** - Let key points sink in
-5. **Make eye contact** - Connect with your audience
-6. **Be enthusiastic** - Your passion for solving this problem should show
-7. **Keep it simple** - Don't get lost in technical details
-8. **End strong** - Close with the vision and impact
-9. **Stay focused on local** - Don't mention AWS/Kubernetes unless asked. The "one command" story is about local development.
-10. **Avoid complexity** - If someone asks about production, acknowledge it exists but redirect to the core value: local developer productivity
+5. **Stay focused** - Local only, no AWS/Kubernetes
 
 ---
 
-## 📊 Visual Aids (Optional)
+## 🎤 Quick Q&A
 
-### Slide 1: The Problem
-- Image: Frustrated developer at computer
-- Text: "10 hours of setup per new engineer"
-- Text: "Works on my machine" problems
+**Q: What about production?**  
+A: Kubernetes support exists, but the core value is local development. One command, everything works.
 
-### Slide 2: The Solution
-- Image: Happy developer coding
-- Text: "One command: `make dev`"
-- Text: "5 minutes to productive"
+**Q: Do I need AWS?**  
+A: No! Everything runs locally with Docker. No cloud accounts needed.
 
-### Slide 3: The Impact
-- Before/After comparison
-- Time saved: 10 hours → 5 minutes
-- Productivity: Day 3 → Day 1
-
-### Slide 4: Architecture
-- Simple diagram showing services
-- Docker Compose orchestration
-- Dashboard monitoring
+**Q: Can I customize it?**  
+A: Yes. Sensible defaults, but everything is configurable.
 
 ---
 
-## 🎤 Q&A Preparation
-
-### Common Questions
-
-**Q: What if a developer needs to customize their setup?**  
-A: The framework provides sensible defaults, but everything is configurable. Developers can override environment variables, add their own services, or modify configurations as needed.
-
-**Q: How does this work for different operating systems?**  
-A: Since everything runs in Docker containers, it works the same on macOS, Linux, and Windows. No OS-specific configuration needed.
-
-**Q: What about production deployment?**  
-A: The project includes Kubernetes manifests for AWS, Azure, and GCP for those who need it. But the primary focus—and the main value—is local development. The "one command" experience is for local setup. Production deployment is a separate concern and doesn't affect the core developer experience.
-
-**Q: Do I need AWS or cloud setup for this to work?**  
-A: No! That's the beauty of it. Everything runs locally with Docker. No cloud accounts, no Kubernetes clusters, no port-forwarding. Just Docker Desktop and one command.
-
-**Q: What if I want to deploy to production later?**  
-A: The Kubernetes support is there when you need it, but it's completely optional. Most developers will use this for local development only, and that's perfectly fine.
-
-**Q: Can this work with existing projects?**  
-A: Yes! You can add this framework to existing projects. Just add your services to the docker-compose.yml, and the dashboard will automatically discover them.
-
-**Q: What's the learning curve?**  
-A: Minimal. If you can run `make dev`, you're set. The dashboard shows everything you need to know about what's running.
-
----
-
-## 🎯 Success Metrics to Mention
-
-- **Setup Time**: Reduced from 10 hours to 5 minutes (99.2% reduction)
-- **Productivity**: Developers coding on day one instead of day three
-- **Support Time**: Senior engineers save 10 hours per new hire
-- **Consistency**: Same environment for everyone, no "works on my machine" issues
-- **Onboarding**: 95% reduction in environment-related support tickets
-
----
-
-## 📝 Personal Notes Section
-
-*Use this space to add your own notes, anecdotes, or specific examples from your experience in Mongolia.*
-
----
-
-**Remember**: This is your story. Make it personal. Make it real. Show the passion you have for solving this problem. That's what will resonate with your audience.
-
+**Remember**: Keep it simple. One command. That's the story.
